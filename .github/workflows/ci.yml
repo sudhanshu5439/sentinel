@@ -46,7 +46,19 @@ jobs:
             --config p/dockerfile --config p/kubernetes \
             --severity ERROR --error \
             --sarif --output semgrep.sarif .
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Show findings as annotations
+        if: always() && hashFiles('semgrep.sarif') != ''
+        run: |
+          python3 - <<'PY'
+          import json
+          for run in json.load(open("semgrep.sarif"))["runs"]:
+              for r in run.get("results", []):
+                  loc = r["locations"][0]["physicalLocation"]
+                  path, line = loc["artifactLocation"]["uri"], loc["region"]["startLine"]
+                  msg = r["message"]["text"].replace("\n", " ")[:300]
+                  print(f"::error file={path},line={line},title={r['ruleId']}::{msg}")
+          PY
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif
@@ -80,9 +92,10 @@ jobs:
         working-directory: apps/risk-engine
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: apps/risk-engine/go.mod
+          cache: false # no third-party modules to cache
       - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go test -race -count=1 ./...
