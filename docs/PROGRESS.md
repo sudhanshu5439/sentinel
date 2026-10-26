@@ -40,7 +40,9 @@
 
 ## Next
 
-- [ ] Watch the first pipeline run on GitHub and fix any Semgrep/Trivy findings
+- [x] First pipeline runs: Semgrep caught a script-injection pattern in our own workflow (fixed by passing
+      context values via env); trivy-action pinned to a commit SHA after its old tag stopped resolving.
+      Run 40307469006 is fully green: 3 images published, signed, with SBOM + provenance attestations.
 - [ ] Make the 3 GHCR packages public (or add an image pull secret) so the cluster can pull them
 - [ ] 4. GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
 
