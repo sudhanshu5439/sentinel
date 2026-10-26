@@ -37,3 +37,6 @@ Thumbs.db
 
 # Chaos run scratch (keep results/ committed)
 chaos/tmp/
+
+# Generated local secrets
+deploy/local/secrets.env

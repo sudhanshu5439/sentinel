@@ -51,7 +51,7 @@ Sudhanshu must be able to defend every line of this repo in an interview. So:
 
 - Never commit secrets. Use `.env` (git-ignored) locally; External Secrets in-cluster.
 - Ask before any command that deletes data, rewrites git history or force-pushes.
-- AWS (Phase 7 only): always confirm before `terraform apply`; always show the destroy command;
+- AWS (cloud demo only): always confirm before `terraform apply`; always show the destroy command;
   remind him to destroy the same day.
 - LLM API calls in the assistant must have a timeout, a max-token cap and a per-incident budget.
 
@@ -67,21 +67,24 @@ Sudhanshu must be able to defend every line of this repo in an interview. So:
   (`/healthz`, `/readyz`), OpenTelemetry instrumentation.
 - **Kubernetes:** Kustomize base + overlays; every workload has requests/limits, probes,
   `runAsNonRoot`, read-only root filesystem where possible.
-- **Makefile is the front door:** `make up`, `make down`, `make status`, `make test`, plus targets
-  added per phase. Every target is documented in `make help`.
+- **Makefile is the front door:** `make up`, `make down`, `make status`, `make test`, plus new
+  targets as the platform grows. Every target is documented in `make help`.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`), small and
   frequent. Write the message so it explains *why*.
 - **Docs:** update `docs/PROGRESS.md` (what was done, what's next, open questions) at the end of
   each session.
 
-## Phases (see docs/PLAN.md for detail)
+## Build backlog (no phases or dates; build continuously in this order)
 
-1. Foundations: 3 services, Dockerfiles, kind via Terraform, `make up`
-2. Secure CI: tests, Semgrep, Gitleaks, Trivy, Syft, Cosign, provenance, GHCR
-3. GitOps, policy, canary: Argo CD, Kustomize, promotion PRs, Kyverno, Argo Rollouts (v1 ships)
-4. Observability and SLOs: OTel Collector, Prometheus, Loki, Tempo, Grafana, Sloth, k6
-5. AIOps read-only: grouping, evidence, correlation, LLM diagnosis, Slack
-6. Guarded actions and evaluation: action tiers, approvals, revert PRs, audit, chaos eval
-7. Polish + EKS demo: README, decision notes, video, apply/record/destroy
+1. ✅ Demo apps: order-api, risk-engine, notifier + tests
+2. ✅ Containers + local cluster: Dockerfiles, kind via Terraform, Kustomize, `make up`
+3. Secure CI: tests, Semgrep, Gitleaks, Trivy, Syft SBOM, Cosign, provenance, GHCR
+4. GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
+5. Progressive delivery: Argo Rollouts canary with Prometheus analysis
+6. Observability + SLOs: OTel Collector, Prometheus, Loki, Tempo, Grafana, Sloth, k6
+7. AIOps assistant (read-only): grouping, evidence, correlation, LLM diagnosis, Slack
+8. Guarded actions: action tiers, approvals, revert PRs, audit log, kill switch
+9. Chaos evaluation: 8 scenarios, measured results
+10. Cloud demo + polish: EKS apply/record/destroy, README, decision notes, video
 
-Work only on the current phase listed in `docs/PROGRESS.md` unless he says otherwise.
+`docs/PROGRESS.md` tracks what's done and what's next.
