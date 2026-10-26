@@ -113,9 +113,13 @@ jobs:
       - uses: sigstore/cosign-installer@v3
         if: inputs.publish
 
+      # Values from contexts are passed through env, never interpolated into the script itself
+      # (prevents script injection; Semgrep enforces this).
       - name: Sign image (keyless, Sigstore)
         if: inputs.publish
-        run: cosign sign --yes "${IMAGE}@${{ steps.build.outputs.digest }}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
 
       - name: Attest SBOM
         if: inputs.publish
@@ -136,10 +140,14 @@ jobs:
 
       - name: Summary
         if: inputs.publish
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+          SERVICE: ${{ inputs.service }}
+          REPO: ${{ github.repository }}
         run: |
           {
-            echo "### ${{ inputs.service }}"
-            echo "- Image: \`${IMAGE}@${{ steps.build.outputs.digest }}\`"
+            echo "### ${SERVICE}"
+            echo "- Image: \`${IMAGE}@${DIGEST}\`"
             echo "- Scanned (Trivy), SBOM attached, signed (cosign keyless), provenance attested"
-            echo "- Verify: \`cosign verify ${IMAGE}@${{ steps.build.outputs.digest }} --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.github/workflows/supply-chain.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com\`"
+            echo "- Verify: \`cosign verify ${IMAGE}@${DIGEST} --certificate-identity-regexp 'https://github.com/${REPO}/.github/workflows/supply-chain.yml@.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com\`"
           } >> "$GITHUB_STEP_SUMMARY"
