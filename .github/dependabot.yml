@@ -1,0 +1,17 @@
+# Keeps dependencies and GitHub Actions up to date with weekly, reviewable pull requests.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+  - package-ecosystem: uv
+    directories: [/apps/order-api, /apps/notifier]
+    schedule: { interval: weekly }
+  - package-ecosystem: gomod
+    directory: /apps/risk-engine
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directories: [/apps/order-api, /apps/notifier, /apps/risk-engine]
+    schedule: { interval: weekly }

@@ -77,6 +77,16 @@ wait: ## Wait until every workload is ready
 	kubectl -n $(NAMESPACE) rollout status deploy/redis --timeout=120s
 	@for s in $(SERVICES); do kubectl -n $(NAMESPACE) rollout status deploy/$$s --timeout=180s || exit 1; done
 
+##@ Supply chain
+
+OWNER ?= sudhanshu5439
+.PHONY: verify
+verify: ## Verify a published image's signature: make verify SVC=order-api
+	cosign verify ghcr.io/$(OWNER)/sentinel-$(SVC):main \
+	  --certificate-identity-regexp 'https://github.com/$(OWNER)/sentinel/.github/workflows/supply-chain.yml@.*' \
+	  --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.[0].optional | {Issuer, Subject}'
+	gh attestation verify oci://ghcr.io/$(OWNER)/sentinel-$(SVC):main --owner $(OWNER)
+
 ##@ Quality
 
 .PHONY: test

@@ -1,8 +1,10 @@
 # Sentinel
 
+[![ci](https://github.com/sudhanshu5439/sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/sudhanshu5439/sentinel/actions/workflows/ci.yml)
+
 **Self-healing, supply-chain-secured Kubernetes delivery platform with an LLM-powered incident assistant.**
 
-🚧 Work in progress, built in public. Follow along on [LinkedIn](https://www.linkedin.com/).
+🚧 Work in progress, built in public. 
 
 - Only signed, scanned, policy-checked images reach the cluster
 - Canary releases are judged against SLOs and roll back automatically

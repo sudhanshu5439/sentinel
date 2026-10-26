@@ -1,0 +1,121 @@
+# Sentinel CI: every pull request and every push to main goes through these gates.
+#   1. secrets scan (Gitleaks)   2. SAST (Semgrep)   3. lint + unit tests per service
+#   4. Kubernetes manifest validation
+# On main, each image then goes through the secure supply chain (build, scan, SBOM, sign, attest).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; jobs that need more ask for it explicitly.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets-scan:
+    name: Secrets scan (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # scan the full history, not just the last commit
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload findings to the GitHub Security tab
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v5
+      - name: Semgrep scan (fail on ERROR-severity findings)
+        run: |
+          semgrep scan --config p/default --config p/python --config p/golang \
+            --config p/dockerfile --config p/kubernetes \
+            --severity ERROR --error \
+            --sarif --output semgrep.sarif .
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  test-python:
+    name: Test ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [order-api, notifier]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  test-go:
+    name: Test risk-engine
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/risk-engine
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: apps/risk-engine/go.mod
+      - run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+
+  manifests:
+    name: Validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install kustomize + kubeconform
+        run: |
+          curl -fsSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz | tar xz
+          curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+      - name: Render and validate
+        run: |
+          echo "POSTGRES_PASSWORD=ci-placeholder" > deploy/local/secrets.env
+          ./kustomize build deploy/local | ./kubeconform -strict -summary
+
+  supply-chain:
+    name: Supply chain ${{ matrix.service }}
+    needs: [secrets-scan, sast, test-python, test-go, manifests]
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [order-api, risk-engine, notifier]
+    uses: ./.github/workflows/supply-chain.yml
+    with:
+      service: ${{ matrix.service }}
+      # Only main produces published, signed images; pull requests build and scan only.
+      publish: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # OIDC token for keyless signing and attestations
+      attestations: write
+      security-events: write

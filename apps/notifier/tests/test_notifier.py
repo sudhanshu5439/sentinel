@@ -45,3 +45,18 @@ def test_health_and_metrics():
     assert client.get("/healthz").status_code == 200
     assert client.get("/readyz").json()["checks"]["redis"] is True
     assert "notifier_events_processed_total" in client.get("/metrics").text
+
+
+def test_log_lines_are_json(capsys):
+    import logging
+
+    from notifier.main import JsonFormatter, send
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logging.getLogger("notifier").addHandler(handler)
+    logging.getLogger("notifier").setLevel(logging.INFO)
+    send("hello")
+    line = capsys.readouterr().err.strip().splitlines()[-1]
+    entry = json.loads(line)
+    assert entry["event"] == "notification" and entry["message"] == "hello"

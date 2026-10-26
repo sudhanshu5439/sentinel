@@ -34,8 +34,25 @@ def format_notification(order: dict) -> str:
     )
 
 
+class JsonFormatter(logging.Formatter):
+    """One JSON object per log line (same shape as order-api), easy to query in Loki."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        entry = {
+            "ts": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "level": record.levelname.lower(),
+            "service": "notifier",
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        entry.update(getattr(record, "fields", {}))
+        if record.exc_info:
+            entry["error"] = self.formatException(record.exc_info)
+        return json.dumps(entry)
+
+
 def send(message: str) -> None:
-    log.info(json.dumps({"event": "notification", "message": message}))
+    log.info("notification sent", extra={"fields": {"event": "notification", "message": message}})
 
 
 def ensure_group(r: redis.Redis) -> None:
@@ -89,6 +106,7 @@ class Worker:
 
 def create_app(r: redis.Redis | None = None, start_worker: bool = True) -> FastAPI:
     handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(JsonFormatter())
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), handlers=[handler], force=True)
     r = r or redis.Redis.from_url(
         os.getenv("REDIS_URL", "redis://redis:6379/0"), socket_timeout=10, socket_connect_timeout=2

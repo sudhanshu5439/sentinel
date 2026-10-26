@@ -26,18 +26,32 @@
   read-only root filesystem, dropped capabilities. DB password generated into a git-ignored file.
 - `make up | down | status | smoke | reload | logs | test | lint`.
 
+### 3. Secure CI (GitHub Actions)
+- `ci.yml` on every PR and push to main: Gitleaks (full history), Semgrep (Python, Go, Dockerfile,
+  Kubernetes rules; blocks on ERROR findings; results in the Security tab), ruff + pytest for the
+  Python services, gofmt + vet + race tests for Go, kustomize + kubeconform for manifests.
+- `supply-chain.yml` (reusable, one run per service): build, Trivy scan BEFORE publishing (blocks
+  on fixable CRITICAL; HIGH+CRITICAL report to the Security tab), push to GHCR (only on main),
+  SPDX SBOM (Syft), keyless cosign signature, SBOM attestation and SLSA build provenance.
+- Least-privilege `permissions:` per job; OIDC instead of stored keys; Dependabot for actions,
+  Python, Go and base images.
+- `make verify SVC=order-api` checks the signature and attestations locally.
+- Notifier logs switched to clean JSON (same shape as order-api).
+
 ## Next
 
-- [ ] Run `make up` and `make smoke` on the laptop, fix anything that differs from the cloud workspace
-- [ ] 3. Secure CI pipeline (GitHub Actions)
+- [ ] Watch the first pipeline run on GitHub and fix any Semgrep/Trivy findings
+- [ ] Make the 3 GHCR packages public (or add an image pull secret) so the cluster can pull them
+- [ ] 4. GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
 
 ## Open questions / notes
 
-- Images couldn't be built in the cloud workspace (Docker Hub blocked there), so the first real
-  `docker build` happens on the laptop.
+- Steps 1–2 verified on the laptop: `make up` + `make smoke` passed on 26 Oct 2026.
+- Actions are pinned to version tags; pinning to commit SHAs is a later hardening step.
 
 ## Session log
 
 | Date | What was done | What's next |
 |---|---|---|
 | 26 Oct 2026 | Starter pack; demo apps with tests; Dockerfiles; kind via Terraform; manifests; Makefile | First `make up` on the laptop |
+| 26 Oct 2026 | Smoke test passed on laptop; secure CI pipeline + supply chain | First pipeline run, GitOps |
