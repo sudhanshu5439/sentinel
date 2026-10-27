@@ -253,3 +253,12 @@ jobs:
           } > ../pr-body.md
           gh pr create --repo "$GITOPS_REPO" --base main --head "$branch" \
             --title "promote(prod): sentinel@${SHA::7}" --body-file ../pr-body.md
+          # Only the newest promotion matters: close older, still-open prod promotion PRs.
+          new=$(gh api "repos/${GITOPS_REPO}/pulls?state=open&per_page=100" \
+                  --jq ".[] | select(.head.ref == \"${branch}\") | .number")
+          for n in $(gh api "repos/${GITOPS_REPO}/pulls?state=open&per_page=100" \
+                       --jq ".[] | select(.head.ref | startswith(\"promote/prod-\")) | select(.head.ref != \"${branch}\") | .number"); do
+            gh api "repos/${GITOPS_REPO}/issues/${n}/comments" -f body="Superseded by #${new}." >/dev/null
+            gh api -X PATCH "repos/${GITOPS_REPO}/pulls/${n}" -f state=closed >/dev/null
+            echo "closed superseded PR #${n}"
+          done
