@@ -1,0 +1,14 @@
+# Lets Argo CD report the health of child Applications, so sync waves in the app-of-apps
+# really wait (Kyverno healthy -> policies applied -> apps deployed).
+data:
+  resource.customizations.health.argoproj.io_Application: |
+    hs = {}
+    hs.status = "Progressing"
+    hs.message = ""
+    if obj.status ~= nil and obj.status.health ~= nil then
+      hs.status = obj.status.health.status
+      if obj.status.health.message ~= nil then
+        hs.message = obj.status.health.message
+      end
+    end
+    return hs

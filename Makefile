@@ -77,6 +77,50 @@ wait: ## Wait until every workload is ready
 	kubectl -n $(NAMESPACE) rollout status deploy/redis --timeout=120s
 	@for s in $(SERVICES); do kubectl -n $(NAMESPACE) rollout status deploy/$$s --timeout=180s || exit 1; done
 
+##@ GitOps (Argo CD + Kyverno)
+
+ARGOCD_VERSION ?= v3.5.6
+GITOPS_RAW     ?= https://raw.githubusercontent.com/$(OWNER)/sentinel-gitops/main
+
+.PHONY: gitops-up
+gitops-up: gitops-secrets ## Install Argo CD and hand the cluster over to the sentinel-gitops repo
+	kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+	kubectl apply -n argocd --server-side --force-conflicts \
+	  -f https://raw.githubusercontent.com/argoproj/argo-cd/$(ARGOCD_VERSION)/manifests/install.yaml
+	kubectl -n argocd patch configmap argocd-cm --type merge --patch-file deploy/argocd/application-health.yaml
+	@# Not needed on a laptop: SSO (dex), ApplicationSets, notifications. Saves ~300 MB of RAM.
+	kubectl -n argocd scale deploy argocd-dex-server argocd-applicationset-controller argocd-notifications-controller --replicas=0
+	kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
+	kubectl -n argocd rollout restart statefulset/argocd-application-controller
+	kubectl apply -f $(GITOPS_RAW)/bootstrap/root.yaml
+	@echo -e "\n\033[32mArgo CD is syncing from sentinel-gitops.\033[0m Watch it: make argocd-ui  /  make gitops-status"
+
+.PHONY: gitops-secrets
+gitops-secrets: ## Create the DB password Secret in staging and prod (never stored in Git)
+	@for env in staging prod; do \
+	  ns=sentinel-$$env; \
+	  kubectl create namespace $$ns --dry-run=client -o yaml | kubectl apply -f - >/dev/null; \
+	  if ! kubectl -n $$ns get secret postgres-credentials >/dev/null 2>&1; then \
+	    kubectl -n $$ns create secret generic postgres-credentials \
+	      --from-literal=POSTGRES_PASSWORD=$$(openssl rand -hex 16) >/dev/null && echo "created secret in $$ns"; \
+	  fi; \
+	done
+
+.PHONY: gitops-status
+gitops-status: ## Show Argo CD apps, policies and the pods they run
+	@kubectl -n argocd get applications -o custom-columns=APP:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
+	@echo; kubectl get imagevalidatingpolicies,validatingpolicies 2>/dev/null || true
+	@echo; kubectl get pods -n sentinel-staging; echo; kubectl get pods -n sentinel-prod
+
+.PHONY: argocd-ui
+argocd-ui: ## Open the Argo CD UI on https://localhost:8081 (prints the admin password)
+	@echo "user: admin   password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+	kubectl -n argocd port-forward svc/argocd-server 8081:443
+
+.PHONY: policy-test
+policy-test: ## Prove the policies: unsigned / tag-based / foreign images are refused in staging
+	@bash scripts/policy-test.sh
+
 ##@ Supply chain
 
 OWNER ?= sudhanshu5439

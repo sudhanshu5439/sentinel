@@ -79,7 +79,7 @@ Sudhanshu must be able to defend every line of this repo in an interview. So:
 1. ✅ Demo apps: order-api, risk-engine, notifier + tests
 2. ✅ Containers + local cluster: Dockerfiles, kind via Terraform, Kustomize, `make up`
 3. ✅ Secure CI: tests, Semgrep, Gitleaks, Trivy, Syft SBOM, Cosign, provenance, GHCR
-4. GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
+4. ✅ GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
 5. Progressive delivery: Argo Rollouts canary with Prometheus analysis
 6. Observability + SLOs: OTel Collector, Prometheus, Loki, Tempo, Grafana, Sloth, k6
 7. AIOps assistant (read-only): grouping, evidence, correlation, LLM diagnosis, Slack

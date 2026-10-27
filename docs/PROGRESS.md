@@ -38,22 +38,37 @@
 - `make verify SVC=order-api` checks the signature and attestations locally.
 - Notifier logs switched to clean JSON (same shape as order-api).
 
+### 4. GitOps + policy
+- New repo `sentinel-gitops`: Argo CD app-of-apps (`bootstrap/root.yaml` → `argocd/`), Kyverno
+  v1.19.2 from its pinned Helm chart (3.9.2, sized for a laptop), Sentinel policies, and the apps
+  as `apps/base` + `apps/overlays/{staging,prod}` with images pinned by digest.
+- Kyverno policies (new `policies.kyverno.io` CEL types; `ClusterPolicy` is deprecated in 1.19),
+  enforced only in namespaces labelled `sentinel.io/require-signed-images=true`:
+  - `verify-sentinel-images` (ImageValidatingPolicy): digest required + cosign keyless signature
+    from `supply-chain.yml@refs/heads/main`, checked against Rekor. Fails closed.
+  - `restrict-registries`: only Sentinel images plus postgres:16 / redis:7.
+  - `require-resources-and-probes`: requests, memory limit, readiness probe.
+- Policies are tested in the gitops repo's CI with the Kyverno CLI: real overlays must pass, known-bad
+  fixtures must be denied (`scripts/validate.sh`).
+- Promotion: after the supply chain, CI resolves the digests built from the commit, commits them to
+  the staging overlay (Argo CD syncs), and opens a PR for prod. Needs the `GITOPS_TOKEN` secret.
+- `make gitops-up | gitops-status | argocd-ui | policy-test`.
+
 ## Next
 
-- [x] First pipeline runs: Semgrep caught a script-injection pattern in our own workflow (fixed by passing
-      context values via env); trivy-action pinned to a commit SHA after its old tag stopped resolving.
-      Run 40307469006 is fully green: 3 images published, signed, with SBOM + provenance attestations.
-- [ ] Make the 3 GHCR packages public (or add an image pull secret) so the cluster can pull them
-- [ ] 4. GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
+- [ ] Create the fine-grained `GITOPS_TOKEN` and add it as a secret in the sentinel repo
+- [ ] Run `make gitops-up` on the laptop, then `make gitops-status` and `make policy-test`
+- [ ] 5. Progressive delivery: Argo Rollouts canary with Prometheus analysis
 
 ## Open questions / notes
 
-- Steps 1–2 verified on the laptop: `make up` + `make smoke` passed on 26 Oct 2026.
-- Actions are pinned to version tags; pinning to commit SHAs is a later hardening step.
-
+- postgres and redis are still referenced by tag (Docker Hub isn't reachable from the cloud workspace
+  to resolve digests). Pin them by digest from the laptop.
+- Kyverno doesn't yet verify the SLSA provenance attestation (only the signature): next hardening step.
 ## Session log
 
 | Date | What was done | What's next |
 |---|---|---|
 | 26 Oct 2026 | Starter pack; demo apps with tests; Dockerfiles; kind via Terraform; manifests; Makefile | First `make up` on the laptop |
 | 26 Oct 2026 | Smoke test passed on laptop; secure CI pipeline + supply chain | First pipeline run, GitOps |
+| 27 Oct 2026 | sentinel-gitops repo, Argo CD app-of-apps, Kyverno policies with tests, CI promotion | `make gitops-up` on the laptop |
