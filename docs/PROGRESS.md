@@ -62,6 +62,8 @@
 
 ## Open questions / notes
 
+- Steps 1–2 verified on the laptop: `make up` + `make smoke` passed on 26 Oct 2026.
+- Third-party actions use version tags except Trivy (pinned by SHA); full SHA pinning is a later hardening step.
 - postgres and redis are still referenced by tag (Docker Hub isn't reachable from the cloud workspace
   to resolve digests). Pin them by digest from the laptop.
 - Kyverno doesn't yet verify the SLSA provenance attestation (only the signature): next hardening step.
