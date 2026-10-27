@@ -54,11 +54,27 @@
   the staging overlay (Argo CD syncs), and opens a PR for prod. Needs the `GITOPS_TOKEN` secret.
 - `make gitops-up | gitops-status | argocd-ui | policy-test`.
 
+### 5. Progressive delivery (canary)
+- Found and fixed a real bug first: order-api's fault-injection middleware was outermost, so injected
+  500s and delays never reached Prometheus. A canary analysis could not have caught a bad release.
+  Middleware order is now explicit and tested; metrics use a per-app registry.
+- `order_api.loadgen`: steady synthetic traffic (5 orders/s), shipped in the signed order-api image.
+- gitops repo: kube-prometheus-stack 92.14.0 (lean: no Grafana/Alertmanager/node-exporter yet) and
+  Argo Rollouts 1.10.1, both via Argo CD.
+- order-api is a Rollout with 4 replicas: 25 → 50 → 75 → 100 % with 2m/2m/1m pauses. Background
+  AnalysisTemplate queries Prometheus every 30 s about the canary pods only (by pod-template hash):
+  traffic ≥ 10 req/min, 5xx ≤ 5 %, p95 ≤ 300 ms. Second failure aborts.
+- Fault switches are a generated ConfigMap per environment; a change in Git → new hash → new pod
+  template → real canary. `make canary-bad | canary-slow | canary-reset | canary-watch`.
+- First automatic promotion worked: CI committed staging and opened a prod PR. That PR conflicted
+  with the canary restructuring, so it was replaced by PR #2 (same digests) instead of being force-pushed.
+
 ## Next
 
-- [ ] Create the fine-grained `GITOPS_TOKEN` and add it as a secret in the sentinel repo
-- [ ] Run `make gitops-up` on the laptop, then `make gitops-status` and `make policy-test`
-- [ ] 5. Progressive delivery: Argo Rollouts canary with Prometheus analysis
+- [ ] Laptop: pull, let Argo CD sync, install the kubectl-argo-rollouts plugin
+- [ ] `make canary-bad ENV=staging` → watch the abort → `make canary-reset ENV=staging`
+- [ ] Review and merge sentinel-gitops PR #2 (prod promotion)
+- [ ] 6. Observability + SLOs
 
 ## Open questions / notes
 
@@ -74,3 +90,4 @@
 | 26 Oct 2026 | Starter pack; demo apps with tests; Dockerfiles; kind via Terraform; manifests; Makefile | First `make up` on the laptop |
 | 26 Oct 2026 | Smoke test passed on laptop; secure CI pipeline + supply chain | First pipeline run, GitOps |
 | 27 Oct 2026 | sentinel-gitops repo, Argo CD app-of-apps, Kyverno policies with tests, CI promotion | `make gitops-up` on the laptop |
+| 27 Oct 2026 | Kyverno verified on laptop; metrics bug fixed; Prometheus + Argo Rollouts; canary with analysis | Canary experiment on the laptop |

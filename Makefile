@@ -121,6 +121,34 @@ argocd-ui: ## Open the Argo CD UI on https://localhost:8081 (prints the admin pa
 policy-test: ## Prove the policies: unsigned / tag-based / foreign images are refused in staging
 	@bash scripts/policy-test.sh
 
+##@ Canary releases (Argo Rollouts)
+
+ENV ?= staging
+
+.PHONY: canary-bad
+canary-bad: ## Release a version with errors through Git and watch the canary abort: make canary-bad ENV=staging RATE=0.3
+	@bash scripts/canary.sh bad $(ENV) $(or $(RATE),0.3)
+
+.PHONY: canary-slow
+canary-slow: ## Release a slow version through Git: make canary-slow ENV=staging MS=500
+	@bash scripts/canary.sh slow $(ENV) $(or $(MS),500)
+
+.PHONY: canary-reset
+canary-reset: ## Restore the healthy version through Git: make canary-reset ENV=staging
+	@bash scripts/canary.sh reset $(ENV)
+
+.PHONY: canary-watch
+canary-watch: ## Follow the order-api rollout live: make canary-watch ENV=staging
+	@bash scripts/canary.sh watch $(ENV)
+
+.PHONY: rollouts-ui
+rollouts-ui: ## Open the Argo Rollouts dashboard on http://localhost:3100
+	kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100:3100
+
+.PHONY: prometheus-ui
+prometheus-ui: ## Open Prometheus on http://localhost:9090 (try: http_requests_total)
+	kubectl -n monitoring port-forward svc/kps-prometheus 9090:9090
+
 ##@ Supply chain
 
 OWNER ?= sudhanshu5439
