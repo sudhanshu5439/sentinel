@@ -121,7 +121,7 @@ argocd-ui: ## Open the Argo CD UI on https://localhost:8081 (prints the admin pa
 policy-test: ## Prove the policies: unsigned / tag-based / foreign images are refused in staging
 	@bash scripts/policy-test.sh
 
-##@ Canary releases (Argo Rollouts)
+##@ Canary releases and observability
 
 ENV ?= staging
 
@@ -144,6 +144,15 @@ canary-watch: ## Follow the order-api rollout live: make canary-watch ENV=stagin
 .PHONY: rollouts-ui
 rollouts-ui: ## Open the Argo Rollouts dashboard on http://localhost:3100
 	kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100:3100
+
+.PHONY: grafana-ui
+grafana-ui: ## Open Grafana on http://localhost:3000 (prints the admin password)
+	@echo "user: admin   password: $$(kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d)"
+	kubectl -n monitoring port-forward svc/grafana 3000:80
+
+.PHONY: alertmanager-ui
+alertmanager-ui: ## Open Alertmanager on http://localhost:9093 (see which alerts are firing)
+	kubectl -n monitoring port-forward svc/kps-alertmanager 9093:9093
 
 .PHONY: prometheus-ui
 prometheus-ui: ## Open Prometheus on http://localhost:9090 (try: http_requests_total)

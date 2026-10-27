@@ -81,7 +81,7 @@ Sudhanshu must be able to defend every line of this repo in an interview. So:
 3. ✅ Secure CI: tests, Semgrep, Gitleaks, Trivy, Syft SBOM, Cosign, provenance, GHCR
 4. ✅ GitOps + policy: sentinel-gitops repo, Argo CD, promotion PRs by digest, Kyverno
 5. ✅ Progressive delivery: Argo Rollouts canary with Prometheus analysis
-6. Observability + SLOs: OTel Collector, Prometheus, Loki, Tempo, Grafana, Sloth, k6
+6. ✅ Observability + SLOs: OTel Collector, Prometheus, Loki, Tempo, Grafana, Sloth, k6
 7. AIOps assistant (read-only): grouping, evidence, correlation, LLM diagnosis, Slack
 8. Guarded actions: action tiers, approvals, revert PRs, audit log, kill switch
 9. Chaos evaluation: 8 scenarios, measured results
