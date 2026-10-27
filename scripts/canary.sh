@@ -28,7 +28,11 @@ set_faults() { # error_rate latency_ms message
   git -C "$tmp" commit -qam "chaos($env): $3"
   git -C "$tmp" push -q origin HEAD:main
   echo "pushed: chaos($env): $3"
-  echo "Argo CD picks it up within ~3 min (click Refresh in the UI to make it immediate)."
+  # Argo CD polls Git every ~3 min; ask it to look now instead of waiting.
+  kubectl -n argocd annotate application "sentinel-$env" argocd.argoproj.io/refresh=normal --overwrite >/dev/null \
+    && echo "Argo CD refresh requested: the change syncs within seconds." \
+    || echo "Could not reach Argo CD; it will pick the change up within ~3 min."
+  echo "Watch it: make canary-watch ENV=$env   (wait for the rollout to finish before resetting)"
 }
 
 case "$cmd" in
