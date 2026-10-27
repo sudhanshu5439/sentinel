@@ -118,3 +118,17 @@ def test_metrics_exposed(make_client):
     client = make_client()
     client.post("/orders", json=VALID)
     assert "http_requests_total" in client.get("/metrics").text
+
+
+def test_injected_faults_are_counted_in_metrics(make_client):
+    # The canary analysis reads these metrics: an injected 500 must be visible to Prometheus.
+    client = make_client(fault_error_rate=1.0)
+    assert client.post("/orders", json=VALID).status_code == 500
+    metrics = client.get("/metrics").text
+    assert 'handler="/orders"' in metrics and 'status="5xx"' in metrics
+
+
+def test_injected_latency_is_measured(make_client):
+    client = make_client(fault_latency_ms=50)
+    assert client.post("/orders", json=VALID).status_code == 201
+    assert 'http_request_duration_seconds_bucket{handler="/orders"' in client.get("/metrics").text

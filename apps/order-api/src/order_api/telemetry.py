@@ -14,6 +14,7 @@ import sys
 
 from fastapi import FastAPI
 from opentelemetry import trace
+from prometheus_client import CollectorRegistry, gc_collector, platform_collector, process_collector
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
@@ -46,9 +47,15 @@ def setup_logging(service: str, version: str) -> None:
 
 
 def setup_metrics(app: FastAPI) -> None:
-    Instrumentator(excluded_handlers=["/healthz", "/readyz", "/metrics"]).instrument(app).expose(
-        app, include_in_schema=False
-    )
+    # One registry per app instead of the process-global default: no cross-talk between app
+    # instances (matters in tests) and an explicit list of what this service exports.
+    registry = CollectorRegistry()
+    process_collector.ProcessCollector(registry=registry)
+    platform_collector.PlatformCollector(registry=registry)
+    gc_collector.GCCollector(registry=registry)
+    Instrumentator(
+        excluded_handlers=["/healthz", "/readyz", "/metrics"], registry=registry
+    ).instrument(app).expose(app, include_in_schema=False)
 
 
 def setup_tracing(app: FastAPI, service: str, version: str) -> None:

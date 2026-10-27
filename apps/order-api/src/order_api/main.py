@@ -51,9 +51,10 @@ def create_app(
     )
 
     app = FastAPI(title="order-api", version=settings.service_version)
-    setup_metrics(app)
-    setup_tracing(app, settings.service_name, settings.service_version)
 
+    # Order matters: Starlette runs the LAST-added middleware first (outermost). The fault
+    # middleware is added first, so the metrics middleware added after it wraps it and counts
+    # injected errors and delays, which is exactly what the canary analysis must see.
     @app.middleware("http")
     async def inject_faults(request: Request, call_next):
         # Simulates a bad release for the chaos scenarios. Off unless FAULT_* env vars are set.
@@ -64,6 +65,9 @@ def create_app(
                 log.error("injected fault: returning 500")
                 return JSONResponse({"detail": "internal error"}, status_code=500)
         return await call_next(request)
+
+    setup_metrics(app)
+    setup_tracing(app, settings.service_name, settings.service_version)
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict:
