@@ -96,6 +96,26 @@
 - Second, separate cause of canary aborts: loadgen reused one keep-alive connection and a Service
   balances per connection, so canary pods got no traffic. Fixed with `Connection: close` (a923a5c).
 
+### Platform UIs through an ingress (28 Oct, sentinel-gitops PRs #9–#12)
+- Traefik 3.7 (chart 41.7.1) on the control-plane node's hostPorts 80/443, which kind maps to
+  laptop 8080/8443. No more port-forwards: `http://<tool>.localtest.me:8080` for grafana,
+  argocd, alertmanager, prometheus, rollouts, plus orders-staging / orders-prod (order-api
+  Swagger UI). `make urls` probes them; `make grafana-ui` / `argocd-ui` print the password.
+- Traefik, not ingress-nginx (retired March 2026). Rollout replaces in place (maxSurge 0): a
+  hostPort fits once per node. Ingress status publishes 127.0.0.1 so Argo CD reports Healthy.
+- Prometheus/Alertmanager externalUrl and Grafana root_url point at the ingress hosts, so alert
+  links (generatorURL) open in a browser; the assistant will cite them.
+- Lessons: (1) `service.type` vs the chart's `service.spec.type`: Helm ignored the unknown key,
+  the Service stayed LoadBalancer `<pending>`, Argo CD never saw Healthy. Render and check the
+  object you care about, not only the fields you expect. (2) Sync-wave deadlock: root waited
+  for the unhealthy Traefik app before applying the commit that fixed it. Unblocked by applying
+  the same file from Git by hand.
+- Cluster recovered: kube-proxy `too many open files` fixed by inotify limits
+  (`/etc/sysctl.d/99-kind.conf`, survives WSL restarts). Prod promoted (PR #8, a923a5c) and the
+  canary completed: staging and prod both run the loadgen fix.
+- Proof: `docs/screenshots/2026-10-28-ingress/` (terminal proof, Grafana, Argo CD, Alertmanager,
+  Prometheus, Rollouts, order-api Swagger).
+
 ### 7. AIOps assistant (read-only), in progress
 Built in slices: 7a grouping → 7b collectors → 7c evidence pack → 7d correlator → 7e LLM
 diagnosis → 7f Slack + deploy.
@@ -108,9 +128,12 @@ diagnosis → 7f Slack + deploy.
 
 ## Next
 
-- [ ] Fix kube-proxy on sentinel-worker (`too many open files`: raise inotify limits)
-- [ ] Staging canary of a923a5c → ✔ Healthy, then merge prod PR #8
 - [ ] Screenshot: Loki log line with trace_id → Tempo trace
+- [ ] Kind host ports listen on 0.0.0.0 (reachable from the LAN, and Prometheus/Alertmanager/
+      Rollouts have no login): set `listen_address = "127.0.0.1"` next time the cluster is recreated
+- [ ] Old `sentinel` namespace (pre-GitOps `make up`): notifier restarts a lot; delete it?
+- [ ] Grafana panels "Error rate" / "burn rate" show "No data" when there are zero errors:
+      add `or vector(0)` so healthy reads as 0, not missing
 - [ ] SLO alert test: rename `orders` table in staging → `OrderApiAvailabilityBudgetBurnFast` fires →
       rename back. (A bad canary can't trigger it: the canary aborts before the 1h window burns.)
       Capture the webhook body as a test fixture for the assistant.
@@ -142,3 +165,4 @@ diagnosis → 7f Slack + deploy.
 | 27 Oct 2026 | Canary abort seen on laptop; prune and rebuild-on-every-commit bugs fixed; observability + SLOs as PR #5 | Merge PR #5, explore Grafana |
 | 27–28 Oct 2026 | PR #5 merged; WSL memory incident found via PSI and fixed; probe + Grafana hardening; loadgen keep-alive bug fixed | Step 7: AIOps assistant |
 | 28 Oct 2026 | Step 7 sliced; 7a: assistant skeleton, Alertmanager webhook, incident grouping, tests, CI | 7e LLM diagnosis |
+| 28 Oct 2026 | Cluster recovered (inotify); Traefik ingress for all UIs + order-api; prod promoted; screenshots | 7b collectors |
