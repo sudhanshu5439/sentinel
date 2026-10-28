@@ -88,6 +88,7 @@ gitops-up: gitops-secrets ## Install Argo CD and hand the cluster over to the se
 	kubectl apply -n argocd --server-side --force-conflicts \
 	  -f https://raw.githubusercontent.com/argoproj/argo-cd/$(ARGOCD_VERSION)/manifests/install.yaml
 	kubectl -n argocd patch configmap argocd-cm --type merge --patch-file deploy/argocd/application-health.yaml
+	kubectl -n argocd patch configmap argocd-cmd-params-cm --type merge --patch-file deploy/argocd/server-insecure.yaml
 	@# Not needed on a laptop: SSO (dex), ApplicationSets, notifications. Saves ~300 MB of RAM.
 	kubectl -n argocd scale deploy argocd-dex-server argocd-applicationset-controller argocd-notifications-controller --replicas=0
 	kubectl -n argocd rollout status deploy/argocd-server --timeout=300s
@@ -113,9 +114,8 @@ gitops-status: ## Show Argo CD apps, policies and the pods they run
 	@echo; kubectl get pods -n sentinel-staging; echo; kubectl get pods -n sentinel-prod
 
 .PHONY: argocd-ui
-argocd-ui: ## Open the Argo CD UI on https://localhost:8081 (prints the admin password)
-	@echo "user: admin   password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
-	kubectl -n argocd port-forward svc/argocd-server 8081:443
+argocd-ui: ## Argo CD UI URL and admin password (served by Traefik, no port-forward)
+	@echo "http://argocd.localtest.me:8080   user: admin   password: $$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
 
 .PHONY: policy-test
 policy-test: ## Prove the policies: unsigned / tag-based / foreign images are refused in staging
@@ -142,21 +142,27 @@ canary-watch: ## Follow the order-api rollout live: make canary-watch ENV=stagin
 	@bash scripts/canary.sh watch $(ENV)
 
 .PHONY: rollouts-ui
-rollouts-ui: ## Open the Argo Rollouts dashboard on http://localhost:3100
-	kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100:3100
+rollouts-ui: ## Argo Rollouts dashboard URL (served by Traefik)
+	@echo "http://rollouts.localtest.me:8080"
 
 .PHONY: grafana-ui
-grafana-ui: ## Open Grafana on http://localhost:3000 (prints the admin password)
-	@echo "user: admin   password: $$(kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d)"
-	kubectl -n monitoring port-forward svc/grafana 3000:80
+grafana-ui: ## Grafana URL and admin password (served by Traefik)
+	@echo "http://grafana.localtest.me:8080   user: admin   password: $$(kubectl -n monitoring get secret grafana -o jsonpath='{.data.admin-password}' | base64 -d)"
 
 .PHONY: alertmanager-ui
-alertmanager-ui: ## Open Alertmanager on http://localhost:9093 (see which alerts are firing)
-	kubectl -n monitoring port-forward svc/kps-alertmanager 9093:9093
+alertmanager-ui: ## Alertmanager URL: see which alerts are firing (served by Traefik)
+	@echo "http://alertmanager.localtest.me:8080"
 
 .PHONY: prometheus-ui
-prometheus-ui: ## Open Prometheus on http://localhost:9090 (try: http_requests_total)
-	kubectl -n monitoring port-forward svc/kps-prometheus 9090:9090
+prometheus-ui: ## Prometheus URL: try http_requests_total (served by Traefik)
+	@echo "http://prometheus.localtest.me:8080"
+
+.PHONY: urls
+urls: ## Every platform UI and whether it answers through the ingress
+	@for h in grafana alertmanager prometheus argocd rollouts; do \
+	  printf "%-14s http://%s.localtest.me:8080  -> HTTP %s\n" $$h $$h \
+	    "$$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://$$h.localtest.me:8080/)"; \
+	done
 
 ##@ Supply chain
 

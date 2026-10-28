@@ -1,0 +1,5 @@
+# argocd-server serves plain HTTP so Traefik can route argocd.localtest.me:8080 to it without
+# TLS passthrough. Laptop only: traffic never leaves 127.0.0.1. On EKS, TLS would end at the
+# load balancer or the ingress controller instead.
+data:
+  server.insecure: "true"
