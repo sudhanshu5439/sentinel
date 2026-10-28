@@ -42,3 +42,6 @@ chaos/tmp/
 
 # Generated local secrets
 deploy/local/secrets.env
+
+# Claude Code local settings (per machine)
+.claude/
