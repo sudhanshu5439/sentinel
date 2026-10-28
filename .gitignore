@@ -5,6 +5,8 @@
 *.pem
 *.key
 kubeconfig*
+# kind writes the cluster's kubeconfig (admin client key) next to the Terraform code
+infra/terraform/envs/local-kind/sentinel-config
 
 # Terraform
 .terraform/
