@@ -12,12 +12,20 @@ SETTINGS = Settings(
     service_version="test",
     group_window_minutes=15,
     max_incidents=100,
+    prometheus_url=None,
+    loki_url=None,
+    kube_api_url=None,
+    kube_token_file="/nonexistent",  # noqa: S106 - a path, not a password
+    kube_ca_file="/nonexistent",
+    argocd_namespace="argocd",
+    lookback_minutes=30,
+    collect_timeout_seconds=1,
 )
 
 
 def client(clock) -> TestClient:
     grouper = IncidentGrouper(window=timedelta(minutes=15), clock=clock)
-    return TestClient(create_app(SETTINGS, grouper))
+    return TestClient(create_app(SETTINGS, grouper, collectors=[]))
 
 
 def payload(*alerts) -> dict:

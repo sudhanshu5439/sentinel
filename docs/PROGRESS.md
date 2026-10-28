@@ -125,6 +125,18 @@ diagnosis → 7f Slack + deploy.
   (same fingerprint and status) are ignored, and only a new incident will trigger diagnosis.
   In-memory store capped at 500 incidents. `GET /incidents[/{id}]`. 14 tests; added to `make
   test/lint` and CI.
+- **7b done:** collectors run once per new incident, in the background (the webhook answers
+  Alertmanager immediately). Prometheus: 5xx ratio, p95, request rate for *every* app in the
+  namespace now vs 1h earlier, restarts, terminations inside the window, unready pods. Loki:
+  warning/error lines. Kubernetes API: Warning events, Argo CD Application history, Rollout
+  conditions/phase (read as CRs: a read-only ServiceAccount, no Argo CD login). A failing or slow
+  collector becomes a GAP item, never a failed incident. Namespace is validated before it goes
+  into PromQL/LogQL. ServiceAccount token re-read per request (kubelet rotates it). 23 tests.
+- Verified live (assistant on the laptop, `kubectl proxy` + Loki port-forward): one webhook →
+  34 evidence items in ~1 s. It caught the WSL restart (all containers terminated ~10:00) and
+  listed Argo CD sync 0edf5db, which was an ingress-only commit that did not change staging:
+  proof that 7d must check whether a sync actually changed the app, not just that it happened.
+- Prometheus has no PVC, so a restart loses history (baselines "n/a" right after a restart).
 
 ## Next
 
@@ -139,7 +151,8 @@ diagnosis → 7f Slack + deploy.
       Capture the webhook body as a test fixture for the assistant.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
-- [ ] **7. AIOps assistant (read-only)** ← current step: 7e LLM diagnosis next, then 7b–7d, 7f
+- [ ] **7. AIOps assistant (read-only)** ← current step: 7c evidence pack, 7d correlator (free);
+      7e LLM needs an API key with prepaid credit (Sudhanshu to decide model + top up); 7f Slack
 - [ ] Decision note 0006 (alert storms), written by Sudhanshu
 
 ## Open questions / notes

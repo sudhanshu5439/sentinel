@@ -10,6 +10,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .evidence import Evidence
+
 
 class Alert(BaseModel):
     """One alert as Alertmanager sends it. Unknown fields are ignored."""
@@ -66,3 +68,6 @@ class Incident(BaseModel):
     alerts: dict[str, AlertRecord] = {}
     # Every webhook delivery that touched this incident, duplicates included: shows storm size.
     notifications: int = 0
+    # Collected once, when the incident opens (one storm, one investigation).
+    evidence: list[Evidence] = []
+    evidence_collected_at: datetime | None = None

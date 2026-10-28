@@ -1,19 +1,25 @@
 """sentinel-assistant: the read-only incident assistant.
 
-POST /webhook/alertmanager  -> group alerts into incidents (diagnosis pipeline comes next)
+POST /webhook/alertmanager  -> group alerts into incidents; a NEW incident starts one
+                               investigation in the background (collect evidence; diagnosis next)
 GET  /incidents, GET /incidents/{id}
 /healthz (process alive), /readyz (ready to receive alerts)
 """
 
+import asyncio
 import json
 import logging
 import os
 import sys
-from datetime import timedelta
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI, HTTPException
 
+from .collectors import Collector, build_collectors, collect_all
 from .config import Settings
+from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
 from .models import Incident, WebhookPayload
 
@@ -43,9 +49,33 @@ def setup_logging(service: str, version: str) -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter(service, version))
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), handlers=[handler], force=True)
+    # httpx logs every request at INFO: one line per Prometheus query per incident is noise.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-def create_app(settings: Settings | None = None, grouper: IncidentGrouper | None = None) -> FastAPI:
+async def investigate(incident: Incident, collectors: list[Collector], settings: Settings) -> None:
+    """Collect the evidence for a new incident (7c trims it, 7e diagnoses it)."""
+    now = datetime.now(UTC)
+    try:
+        scope = Scope(
+            namespace=incident.namespace,
+            service=incident.service,
+            start=incident.opened_at - timedelta(minutes=settings.lookback_minutes),
+            end=now,
+        )
+    except ValueError as exc:
+        log.warning("incident %s: not investigated: %s", incident.id, exc)
+        return
+    incident.evidence = await collect_all(scope, collectors, settings.collect_timeout_seconds)
+    incident.evidence_collected_at = datetime.now(UTC)
+    log.info("incident %s: %d evidence items", incident.id, len(incident.evidence))
+
+
+def create_app(
+    settings: Settings | None = None,
+    grouper: IncidentGrouper | None = None,
+    collectors: list[Collector] | None = None,
+) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
     setup_logging(settings.service_name, settings.service_version)
@@ -53,8 +83,19 @@ def create_app(settings: Settings | None = None, grouper: IncidentGrouper | None
         window=timedelta(minutes=settings.group_window_minutes),
         max_incidents=settings.max_incidents,
     )
+    clients = []
+    if collectors is None:
+        collectors, clients = build_collectors(settings)
+    # Strong references: the event loop only keeps weak ones, so an unreferenced task can vanish.
+    running: set[asyncio.Task[None]] = set()
 
-    app = FastAPI(title="sentinel-assistant", version=settings.service_version)
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        for client in clients:
+            await client.aclose()
+
+    app = FastAPI(title="sentinel-assistant", version=settings.service_version, lifespan=lifespan)
 
     @app.get("/healthz")
     async def healthz() -> dict[str, str]:
@@ -75,6 +116,10 @@ def create_app(settings: Settings | None = None, grouper: IncidentGrouper | None
             if result.outcome is Outcome.NEW_INCIDENT and result.incident is not None:
                 new_incidents.append(result.incident.id)
                 log.info("incident opened: %s", result.incident.id)
+                # Answer Alertmanager now; investigating takes seconds and must not block it.
+                task = asyncio.create_task(investigate(result.incident, collectors, settings))
+                running.add(task)
+                task.add_done_callback(running.discard)
             else:
                 log.info(
                     "alert %s %s: %s",
