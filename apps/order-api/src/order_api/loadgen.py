@@ -37,11 +37,22 @@ def make_order(rng: random.Random) -> dict:
     return order
 
 
+def make_client(target: str) -> httpx.Client:
+    """One TCP connection per request.
+
+    A Kubernetes Service (kube-proxy) picks a backend pod per connection, not per request.
+    With keep-alive, every order would travel over the first connection to the first pod,
+    and a new canary pod could get zero traffic. `Connection: close` makes each request a new
+    connection, so traffic spreads across stable and canary pods in proportion to their count.
+    """
+    return httpx.Client(base_url=target, timeout=5, headers={"Connection": "close"})
+
+
 def run(target: str, rps: float, stop: list[bool], rng: random.Random) -> dict[str, int]:
     stats: dict[str, int] = {}
     interval = 1.0 / rps
     last_report = time.monotonic()
-    with httpx.Client(base_url=target, timeout=5) as client:
+    with make_client(target) as client:
         while not stop[0]:
             started = time.monotonic()
             try:

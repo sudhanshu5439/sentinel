@@ -69,7 +69,7 @@
 - First automatic promotion worked: CI committed staging and opened a prod PR. That PR conflicted
   with the canary restructuring, so it was replaced by PR #2 (same digests) instead of being force-pushed.
 
-### 6. Observability + SLOs (sentinel-gitops PR #5)
+### 6. Observability + SLOs (sentinel-gitops PR #5, merged 27 Oct)
 - Grafana + Alertmanager (kube-prometheus-stack), Loki 3.7.9 and Tempo 3.1.1 (now from the
   grafana-community charts), Grafana Alloy as the one agent: pod logs → Loki, OTLP traces → Tempo.
   Promtail is end-of-life, so Alloy replaces it; it is also an OpenTelemetry Collector distribution.
@@ -84,6 +84,18 @@
   It caught a broken Tempo value before it reached the cluster.
 - Runbook: docs/runbooks/order-api-slo.md. `make grafana-ui | alertmanager-ui`.
 
+### Incident on the laptop (27–28 Oct): debugging story worth telling
+- Symptoms: postgres 19 restarts (exit 0), notifier 26, Grafana killed at start-up (exit 137),
+  kube-apiserver restarted 13× (`/livez` → 500), canaries aborted on `canary-traffic`.
+- Path: probe timeouts → apiserver liveness → etcd slow reads (6k "took too long") → only
+  ~11 req/s on the apiserver, so not load → **PSI**: memory `full avg60` 20.6, swap in use.
+- Root cause: WSL had 7.6 GiB (default 50%), not the planned 10 GB. Fix: `.wslconfig`
+  `memory=10GB, swap=4GB`. After: swap 0, pressure gone.
+- Hardening kept: realistic probe timeouts + startupProbes (gitops PR #6), Grafana loads only the
+  plugins it uses (PR #7).
+- Second, separate cause of canary aborts: loadgen reused one keep-alive connection and a Service
+  balances per connection, so canary pods got no traffic. Fixed with `Connection: close` (a923a5c).
+
 ### 7. AIOps assistant (read-only), in progress
 Built in slices: 7a grouping → 7b collectors → 7c evidence pack → 7d correlator → 7e LLM
 diagnosis → 7f Slack + deploy.
@@ -96,10 +108,16 @@ diagnosis → 7f Slack + deploy.
 
 ## Next
 
-- [ ] 7b: collectors (Prometheus, Loki, K8s events, Argo CD/Rollouts) behind interfaces with fakes
-- [ ] Review and merge sentinel-gitops PR #5; watch memory (`docker stats`) after sync
-- [ ] `make canary-bad` in staging, capture a real Alertmanager webhook body as a test fixture
-- [ ] Decision note 0006 (alert storms) in your own words
+- [ ] Fix kube-proxy on sentinel-worker (`too many open files`: raise inotify limits)
+- [ ] Staging canary of a923a5c → ✔ Healthy, then merge prod PR #8
+- [ ] Screenshot: Loki log line with trace_id → Tempo trace
+- [ ] SLO alert test: rename `orders` table in staging → `OrderApiAvailabilityBudgetBurnFast` fires →
+      rename back. (A bad canary can't trigger it: the canary aborts before the 1h window burns.)
+      Capture the webhook body as a test fixture for the assistant.
+- [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
+- [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
+- [ ] **7. AIOps assistant (read-only)** ← current step: 7e LLM diagnosis next, then 7b–7d, 7f
+- [ ] Decision note 0006 (alert storms), written by Sudhanshu
 
 ## Open questions / notes
 
@@ -122,4 +140,5 @@ diagnosis → 7f Slack + deploy.
 | 27 Oct 2026 | sentinel-gitops repo, Argo CD app-of-apps, Kyverno policies with tests, CI promotion | `make gitops-up` on the laptop |
 | 27 Oct 2026 | Kyverno verified on laptop; metrics bug fixed; Prometheus + Argo Rollouts; canary with analysis | Canary experiment on the laptop |
 | 27 Oct 2026 | Canary abort seen on laptop; prune and rebuild-on-every-commit bugs fixed; observability + SLOs as PR #5 | Merge PR #5, explore Grafana |
-| 28 Oct 2026 | Step 7 sliced; 7a: assistant skeleton, Alertmanager webhook, incident grouping, tests, CI | 7b collectors |
+| 27–28 Oct 2026 | PR #5 merged; WSL memory incident found via PSI and fixed; probe + Grafana hardening; loadgen keep-alive bug fixed | Step 7: AIOps assistant |
+| 28 Oct 2026 | Step 7 sliced; 7a: assistant skeleton, Alertmanager webhook, incident grouping, tests, CI | 7e LLM diagnosis |
