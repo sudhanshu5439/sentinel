@@ -14,3 +14,12 @@ def test_order_mix_is_mostly_valid():
     for o in orders:
         if o["side"] != "HOLD":
             OrderRequest(**o)  # every non-invalid order passes API validation
+
+
+def test_every_request_opens_a_new_connection():
+    # A Service balances per TCP connection, not per request. A keep-alive connection would
+    # pin all synthetic traffic to one pod, so a canary pod could receive nothing at all.
+    from order_api.loadgen import make_client
+
+    with make_client("http://order-api:8000") as client:
+        assert client.headers["connection"] == "close"
