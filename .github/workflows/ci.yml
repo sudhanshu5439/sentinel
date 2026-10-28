@@ -96,10 +96,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [order-api, notifier]
+        include:
+          - { service: order-api, dir: apps/order-api }
+          - { service: notifier, dir: apps/notifier }
+          - { service: sentinel-assistant, dir: aiops }
     defaults:
       run:
-        working-directory: apps/${{ matrix.service }}
+        working-directory: ${{ matrix.dir }}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6

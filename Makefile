@@ -175,9 +175,11 @@ test: ## Run every service's unit tests
 	cd apps/order-api && uv run pytest -q
 	cd apps/notifier && uv run pytest -q
 	cd apps/risk-engine && go test -race -count=1 ./...
+	cd aiops && uv run pytest -q
 
 .PHONY: lint
 lint: ## Lint and format-check all code
 	cd apps/order-api && uv run ruff check . && uv run ruff format --check .
 	cd apps/notifier && uv run ruff check . && uv run ruff format --check .
 	cd apps/risk-engine && test -z "$$(gofmt -l .)" && go vet ./...
+	cd aiops && uv run ruff check . && uv run ruff format --check .

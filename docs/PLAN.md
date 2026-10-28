@@ -121,7 +121,7 @@ cost per incident; compared with a baseline with the assistant off. Publish only
 sentinel/
 ├── README.md  Makefile  CLAUDE.md
 ├── apps/{order-api,risk-engine,notifier}/
-├── aiops/{collector,correlator,diagnosis,actions,slack,tests}/
+├── aiops/{src/assistant/{grouping,collector,correlator,diagnosis,actions,slack}.py,tests}/
 ├── .github/workflows/{ci.yml,supply-chain.yml,promote.yml}
 ├── infra/terraform/{modules/{vpc,eks,irsa},envs/{local-kind,aws-demo}}
 ├── policies/kyverno/

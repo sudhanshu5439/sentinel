@@ -84,12 +84,22 @@
   It caught a broken Tempo value before it reached the cluster.
 - Runbook: docs/runbooks/order-api-slo.md. `make grafana-ui | alertmanager-ui`.
 
+### 7. AIOps assistant (read-only), in progress
+Built in slices: 7a grouping → 7b collectors → 7c evidence pack → 7d correlator → 7e LLM
+diagnosis → 7f Slack + deploy.
+- **7a done:** `aiops/` (one uv project, package `assistant`). `POST /webhook/alertmanager` parses
+  the v4 payload; `IncidentGrouper` groups by (namespace, service) from the real SLO rule labels.
+  An alert joins the incident if it is still open or was active in the last 15 min, duplicates
+  (same fingerprint and status) are ignored, and only a new incident will trigger diagnosis.
+  In-memory store capped at 500 incidents. `GET /incidents[/{id}]`. 14 tests; added to `make
+  test/lint` and CI.
+
 ## Next
 
+- [ ] 7b: collectors (Prometheus, Loki, K8s events, Argo CD/Rollouts) behind interfaces with fakes
 - [ ] Review and merge sentinel-gitops PR #5; watch memory (`docker stats`) after sync
-- [ ] Explore Grafana: dashboard, Explore → Loki → click a trace_id
-- [ ] `make canary-bad` in staging and watch the SLO alert fire in Alertmanager
-- [ ] 7. AIOps assistant (read-only)
+- [ ] `make canary-bad` in staging, capture a real Alertmanager webhook body as a test fixture
+- [ ] Decision note 0006 (alert storms) in your own words
 
 ## Open questions / notes
 
@@ -98,6 +108,11 @@
 - postgres and redis are still referenced by tag (Docker Hub isn't reachable from the cloud workspace
   to resolve digests). Pin them by digest from the laptop.
 - Kyverno doesn't yet verify the SLSA provenance attestation (only the signature): next hardening step.
+- LLM for 7e: hosted API (small model) behind an `LLMClient` interface with a fake for tests;
+  Ollama doesn't fit next to the stack in ~10 GB. Final choice at 7e.
+- Known gap: an incident whose resolve notification never arrives stays open forever and swallows
+  later alerts for that service. Revisit with durable storage (Step 8).
+- `go` isn't on PATH in non-interactive WSL shells, so `make lint` stops at risk-engine there.
 ## Session log
 
 | Date | What was done | What's next |
@@ -107,3 +122,4 @@
 | 27 Oct 2026 | sentinel-gitops repo, Argo CD app-of-apps, Kyverno policies with tests, CI promotion | `make gitops-up` on the laptop |
 | 27 Oct 2026 | Kyverno verified on laptop; metrics bug fixed; Prometheus + Argo Rollouts; canary with analysis | Canary experiment on the laptop |
 | 27 Oct 2026 | Canary abort seen on laptop; prune and rebuild-on-every-commit bugs fixed; observability + SLOs as PR #5 | Merge PR #5, explore Grafana |
+| 28 Oct 2026 | Step 7 sliced; 7a: assistant skeleton, Alertmanager webhook, incident grouping, tests, CI | 7b collectors |
