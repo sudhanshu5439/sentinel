@@ -22,6 +22,7 @@ from .config import Settings
 from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
 from .models import Incident, WebhookPayload
+from .pack import build_pack
 
 log = logging.getLogger("assistant")
 
@@ -68,7 +69,15 @@ async def investigate(incident: Incident, collectors: list[Collector], settings:
         return
     incident.evidence = await collect_all(scope, collectors, settings.collect_timeout_seconds)
     incident.evidence_collected_at = datetime.now(UTC)
-    log.info("incident %s: %d evidence items", incident.id, len(incident.evidence))
+    incident.pack = build_pack(incident.evidence, settings.evidence_token_budget)
+    log.info(
+        "incident %s: %d evidence items -> pack of %d (~%d tokens, dropped %s)",
+        incident.id,
+        len(incident.evidence),
+        len(incident.pack.items),
+        incident.pack.tokens_estimated,
+        incident.pack.dropped or "none",
+    )
 
 
 def create_app(

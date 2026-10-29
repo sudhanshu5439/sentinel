@@ -20,6 +20,7 @@ SETTINGS = Settings(
     argocd_namespace="argocd",
     lookback_minutes=30,
     collect_timeout_seconds=1,
+    evidence_token_budget=6000,
 )
 
 

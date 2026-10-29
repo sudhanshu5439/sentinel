@@ -24,8 +24,11 @@ log = logging.getLogger("assistant.collectors")
 # Every app in the namespace, not only the alerting one: a DB outage or a slow dependency shows up
 # in another app's numbers, and that is how the diagnosis avoids blaming the latest deploy.
 RED_QUERIES = {
+    # `or 0 * total`: with no 5xx series at all, a healthy app must read 0, not vanish (a missing
+    # number looks like "unknown" to the diagnosis).
     "5xx ratio (5m)": (
-        'sum by (app) (rate(http_requests_total{{namespace="{ns}",status="5xx"}}[5m]))'
+        '(sum by (app) (rate(http_requests_total{{namespace="{ns}",status="5xx"}}[5m]))'
+        ' or 0 * sum by (app) (rate(http_requests_total{{namespace="{ns}"}}[5m])))'
         ' / sum by (app) (rate(http_requests_total{{namespace="{ns}"}}[5m]))'
     ),
     "p95 latency seconds (5m)": (

@@ -25,6 +25,8 @@ class Settings:
     # How far before the incident opened to look for changes, logs and events.
     lookback_minutes: int
     collect_timeout_seconds: float
+    # Upper bound for the evidence pack sent to the LLM (estimated tokens).
+    evidence_token_budget: int
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -42,4 +44,5 @@ class Settings:
             argocd_namespace=os.getenv("ARGOCD_NAMESPACE", "argocd"),
             lookback_minutes=max(int(os.getenv("LOOKBACK_MINUTES", "30")), 5),
             collect_timeout_seconds=float(os.getenv("COLLECT_TIMEOUT_SECONDS", "10")),
+            evidence_token_budget=max(int(os.getenv("EVIDENCE_TOKEN_BUDGET", "6000")), 500),
         )

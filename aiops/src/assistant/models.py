@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .evidence import Evidence
+from .pack import EvidencePack
 
 
 class Alert(BaseModel):
@@ -71,3 +72,5 @@ class Incident(BaseModel):
     # Collected once, when the incident opens (one storm, one investigation).
     evidence: list[Evidence] = []
     evidence_collected_at: datetime | None = None
+    # What the LLM will see: redacted, collapsed, ranked, numbered E1..En, within a token budget.
+    pack: EvidencePack | None = None

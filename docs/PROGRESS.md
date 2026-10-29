@@ -137,6 +137,17 @@ diagnosis → 7f Slack + deploy.
   listed Argo CD sync 0edf5db, which was an ingress-only commit that did not change staging:
   proof that 7d must check whether a sync actually changed the app, not just that it happened.
 - Prometheus has no PVC, so a restart loses history (baselines "n/a" right after a restart).
+- **7c done:** evidence pack (`pack.py`). Redact (API keys, AWS keys, GitHub tokens, JWTs,
+  bearer tokens, passwords in URLs and key=value, emails) → collapse (log lines templated:
+  UUIDs, timestamps, IPs, hex, numbers → placeholders; events grouped by reason + message) →
+  rank (gaps, changes newest first, most abnormal metrics, events, logs by count) → token
+  budget (default 6000, gaps never dropped, dropped counts reported) → IDs E1..En. Each item is
+  one line capped at 300 chars, so injected text cannot fake a new `[E2]` line. 15 new tests
+  (38 total), including an injection case.
+- Found live: with zero errors, the 5xx-ratio query returned *no series*, so a healthy app
+  looked "unknown". Fixed with `or 0 * total`: healthy now reads 0.
+- Anthropic API key in `.env` (git-ignored, mode 600); one test call to `claude-haiku-5-5`
+  succeeded (22 in / 8 out tokens). The key was pasted into a chat once: rotate it.
 
 ## Next
 
@@ -151,8 +162,9 @@ diagnosis → 7f Slack + deploy.
       Capture the webhook body as a test fixture for the assistant.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
-- [ ] **7. AIOps assistant (read-only)** ← current step: 7c evidence pack, 7d correlator (free);
-      7e LLM needs an API key with prepaid credit (Sudhanshu to decide model + top up); 7f Slack
+- [ ] **7. AIOps assistant (read-only)** ← current step: 7d correlator next, then 7e LLM
+      diagnosis (Haiku, key ready), 7f Slack + deploy
+- [ ] Rotate the Anthropic API key (it was pasted into a chat); store the new one with `read -s`
 - [ ] Decision note 0006 (alert storms), written by Sudhanshu
 
 ## Open questions / notes
@@ -179,3 +191,5 @@ diagnosis → 7f Slack + deploy.
 | 27–28 Oct 2026 | PR #5 merged; WSL memory incident found via PSI and fixed; probe + Grafana hardening; loadgen keep-alive bug fixed | Step 7: AIOps assistant |
 | 28 Oct 2026 | Step 7 sliced; 7a: assistant skeleton, Alertmanager webhook, incident grouping, tests, CI | 7e LLM diagnosis |
 | 28 Oct 2026 | Cluster recovered (inotify); Traefik ingress for all UIs + order-api; prod promoted; screenshots | 7b collectors |
+| 28 Oct 2026 | 7b collectors; GitHub portfolio (READMEs, profile, topics, old repos private); AI-security positioning | 7c |
+| 29 Oct 2026 | New architecture diagram; API key set up and tested; 7c evidence pack with redaction | 7d correlator |
