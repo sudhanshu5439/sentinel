@@ -11,6 +11,8 @@ assistant needs only a read-only ServiceAccount, not an Argo CD login.
 import asyncio
 import logging
 import os
+import re
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Protocol
 
@@ -48,10 +50,41 @@ STATE_QUERIES = {
         " and on (pod, container) "
         '(kube_pod_container_status_last_terminated_timestamp{{namespace="{ns}"}} > {start})'
     ),
-    "pod not ready": 'kube_pod_status_ready{{namespace="{ns}",condition="false"}} == 1',
+    # `sum by (pod)`: the raw series carries kube-state-metrics' *own* container label.
+    "pod not ready": (
+        'sum by (pod) (kube_pod_status_ready{{namespace="{ns}",condition="false"}}) == 1'
+    ),
 }
 BASELINE_OFFSET = timedelta(hours=1)
 LOG_LIMIT = 200
+METADATA_ONLY = {"Accept": "application/json;as=PartialObjectMetadataList;g=meta.k8s.io;v=v1"}
+# Argo Rollouts: "Rollout not completed, started update to revision 16 (58cb94cdf4)"
+_ROLLOUT_UPDATE = re.compile(r"started update to revision (\d+) \(([0-9a-z]+)\)")
+
+
+def _template_refs(rs: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """(images, ConfigMap names) referenced by a ReplicaSet's pod template."""
+    spec = rs["spec"]["template"]["spec"]
+    containers = spec.get("containers", [])
+    images = [_short_image(c.get("image", "?")) for c in containers]
+    configs = {v["configMap"]["name"] for v in spec.get("volumes", []) if "configMap" in v}
+    for c in containers:
+        configs |= {e["configMapRef"]["name"] for e in c.get("envFrom", []) if "configMapRef" in e}
+        configs |= {
+            e["valueFrom"]["configMapKeyRef"]["name"]
+            for e in c.get("env", [])
+            if "configMapKeyRef" in e.get("valueFrom", {})
+        }
+    return images, sorted(configs)
+
+
+def _short_image(image: str) -> str:
+    """ghcr.io/x/sentinel-order-api@sha256:0c49...  ->  sentinel-order-api@sha256:0c494392"""
+    name = image.rsplit("/", 1)[-1]
+    if "@sha256:" in name:
+        repo, digest = name.split("@sha256:", 1)
+        return f"{repo}@sha256:{digest[:8]}"
+    return name
 
 
 class Collector(Protocol):
@@ -176,20 +209,172 @@ class KubernetesCollector:
     def __init__(self, http: httpx.AsyncClient, api_url: str, argocd_namespace: str) -> None:
         self._http, self._url, self._argocd_ns = http, api_url.rstrip("/"), argocd_namespace
 
-    async def _get(self, path: str, **params: str) -> dict[str, Any]:
-        r = await self._http.get(f"{self._url}{path}", params=params)
+    async def _get(
+        self, path: str, headers: dict[str, str] | None = None, **params: str
+    ) -> dict[str, Any]:
+        r = await self._http.get(f"{self._url}{path}", params=params, headers=headers)
         r.raise_for_status()
         return r.json()
 
     async def collect(self, scope: Scope) -> list[Evidence]:
-        events, apps, rollouts = await asyncio.gather(
-            self._get(f"/api/v1/namespaces/{scope.namespace}/events", fieldSelector="type=Warning"),
+        ns = scope.namespace
+        events, apps, rollouts, replicasets, configmaps, analysisruns = await asyncio.gather(
+            # All events: Warnings are evidence; Normal "started update to revision N (hash)"
+            # events reveal re-deployed revisions (see _revisions).
+            self._get(f"/api/v1/namespaces/{ns}/events"),
             self._get(f"/apis/argoproj.io/v1alpha1/namespaces/{self._argocd_ns}/applications"),
-            self._get(f"/apis/argoproj.io/v1alpha1/namespaces/{scope.namespace}/rollouts"),
+            self._get(f"/apis/argoproj.io/v1alpha1/namespaces/{ns}/rollouts"),
+            self._get(f"/apis/apps/v1/namespaces/{ns}/replicasets"),
+            # Metadata only: the assistant needs to know a ConfigMap appeared, never its contents.
+            self._get(f"/api/v1/namespaces/{ns}/configmaps", headers=METADATA_ONLY),
+            self._get(f"/apis/argoproj.io/v1alpha1/namespaces/{ns}/analysisruns"),
         )
         return (
-            self._events(events, scope) + self._syncs(apps, scope) + self._rollouts(rollouts, scope)
+            self._events(events, scope)
+            + self._syncs(apps, scope)
+            + self._rollouts(rollouts, scope)
+            + self._revisions(replicasets, events, rollouts, analysisruns, scope)
+            + self._configs(configmaps, scope)
         )
+
+    def _revisions(
+        self,
+        replicasets: dict[str, Any],
+        events: dict[str, Any],
+        rollouts: dict[str, Any],
+        analysisruns: dict[str, Any],
+        scope: Scope,
+    ) -> list[Evidence]:
+        """The workload really changed (unlike an Argo CD sync, which may have changed nothing)
+        when a revision was deployed in the window. Two ways that shows up:
+
+        - a ReplicaSet *created* in the window (a pod template never seen before);
+        - a rollout *re-deploying* an existing ReplicaSet: Argo Rollouts re-uses the ReplicaSet
+          of an identical template, so a rollback or a repeated release creates no new object.
+          Its AnalysisRun (and, best-effort, a "started update to revision N" event) dates it.
+
+        Each revision is diffed against its predecessor (the previous ReplicaSet, or the
+        rollout's stable one), so the diagnosis sees *what* changed: the image (code) or only the
+        referenced ConfigMaps (config). Config needs this: kustomize names ConfigMaps by content
+        hash and old versions are kept, so re-applying a known config creates no new ConfigMap."""
+        rs_by_name = {rs["metadata"]["name"]: rs for rs in replicasets.get("items", [])}
+        by_owner: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for rs in rs_by_name.values():
+            owner = (rs["metadata"].get("ownerReferences") or [{}])[0]
+            by_owner[
+                f"{owner.get('kind', '?')}/{owner.get('name', rs['metadata']['name'])}"
+            ].append(rs)
+
+        stable = {
+            r["metadata"]["name"]: r.get("status", {}).get("stableRS")
+            for r in rollouts.get("items", [])
+        }
+
+        def predecessor(owner_ref: str, rs: dict[str, Any], fallback: dict[str, Any] | None):
+            """What this revision replaces: a rollout's stable ReplicaSet, else the previous one."""
+            kind, name = owner_ref.split("/", 1)
+            candidate = rs_by_name.get(f"{name}-{stable.get(name)}") if kind == "Rollout" else None
+            candidate = candidate or fallback
+            return None if candidate is rs else candidate
+
+        deployed: list[tuple[str, dict[str, Any], dict[str, Any] | None, datetime, str]] = []
+        for owner_ref, revisions in by_owner.items():
+            revisions.sort(key=lambda rs: rs["metadata"].get("creationTimestamp", ""))
+            for previous, rs in zip([None, *revisions], revisions, strict=False):
+                at = _ts(rs["metadata"].get("creationTimestamp"))
+                if at is not None and at >= scope.start:
+                    prev = predecessor(owner_ref, rs, previous)
+                    deployed.append((owner_ref, rs, prev, at, "new revision of"))
+
+        # Every attempt to roll out a revision, keyed (rollout, revision number), earliest time.
+        # AnalysisRuns are the durable record (one per attempt, named <rs>-<revision>); events add
+        # rollouts without analysis but are best-effort: the event recorder rate-limits per
+        # object, and during rapid releases it silently dropped "revision 20" entirely.
+        attempts: dict[tuple[str, str], tuple[str, datetime]] = {}
+
+        def attempt(rollout: str, revision: str, pod_hash: str, at: datetime | None) -> None:
+            if at is None or at < scope.start:
+                return
+            key = (rollout, revision)
+            if key not in attempts or at < attempts[key][1]:
+                attempts[key] = (pod_hash, at)
+
+        for run in analysisruns.get("items", []):
+            meta = run["metadata"]
+            owner = (meta.get("ownerReferences") or [{}])[0]
+            pod_hash = meta.get("labels", {}).get("rollouts-pod-template-hash")
+            revision = meta.get("annotations", {}).get("rollout.argoproj.io/revision")
+            if owner.get("kind") == "Rollout" and pod_hash and revision:
+                attempt(owner["name"], revision, pod_hash, _ts(meta.get("creationTimestamp")))
+        for e in events.get("items", []):
+            match = _ROLLOUT_UPDATE.search(e.get("message", ""))
+            if e.get("reason") == "RolloutNotCompleted" and match:
+                at = _ts(e.get("lastTimestamp") or e.get("eventTime"))
+                attempt(e["involvedObject"]["name"], match.group(1), match.group(2), at)
+
+        for (rollout, revision), (pod_hash, at) in sorted(
+            attempts.items(), key=lambda kv: kv[1][1]
+        ):
+            rs = rs_by_name.get(f"{rollout}-{pod_hash}")
+            created = _ts(rs["metadata"].get("creationTimestamp")) if rs else None
+            # Every deployment counts (a revision can be released several times in the window);
+            # skip only the attempt that *is* the creation, already reported as a new revision.
+            if rs is None or (created is not None and abs((at - created).total_seconds()) < 60):
+                continue
+            how = f"re-deployed earlier revision (rollout revision {revision}) of"
+            owner_ref = f"Rollout/{rollout}"
+            deployed.append((owner_ref, rs, predecessor(owner_ref, rs, None), at, how))
+
+        items = []
+        for owner_ref, rs, previous, at, how in deployed:
+            images, configs = _template_refs(rs)
+            old_images, old_configs = _template_refs(previous) if previous else (None, None)
+            what = []
+            if old_images is None:
+                what.append(f"image {', '.join(images)} (no predecessor to compare)")
+            elif images != old_images:
+                what.append(f"image {', '.join(old_images)} → {', '.join(images)}")
+            else:
+                what.append(f"image unchanged ({', '.join(images)})")
+            if old_configs is not None and configs != old_configs:
+                what.append(f"config {', '.join(old_configs) or '-'} → {', '.join(configs) or '-'}")
+            items.append(
+                Evidence(
+                    kind=EvidenceKind.CHANGE,
+                    source="kubernetes",
+                    title=f"{how} {owner_ref}",
+                    detail=f"ReplicaSet {rs['metadata']['name']}; {'; '.join(what)}",
+                    at=at,
+                    data={
+                        "change": "workload",
+                        "owner": owner_ref.split("/", 1)[1],
+                        "image_changed": old_images is not None and images != old_images,
+                        "config_changed": old_configs is not None and configs != old_configs,
+                    },
+                )
+            )
+        return items
+
+    def _configs(self, body: dict[str, Any], scope: Scope) -> list[Evidence]:
+        """Kustomize-generated ConfigMaps carry a content hash in their name, so a ConfigMap
+        created in the window is a new configuration version."""
+        items = []
+        for cm in body.get("items", []):
+            meta = cm["metadata"]
+            at = _ts(meta.get("creationTimestamp"))
+            if at is None or at < scope.start or meta["name"] == "kube-root-ca.crt":
+                continue
+            items.append(
+                Evidence(
+                    kind=EvidenceKind.CHANGE,
+                    source="kubernetes",
+                    title=f"new ConfigMap {meta['name']}",
+                    detail="configuration version created (contents not read)",
+                    at=at,
+                    data={"change": "config", "name": meta["name"]},
+                )
+            )
+        return items
 
     def _events(self, body: dict[str, Any], scope: Scope) -> list[Evidence]:
         items = []
@@ -197,7 +382,7 @@ class KubernetesCollector:
             at = _ts(
                 e.get("lastTimestamp") or e.get("eventTime") or e["metadata"]["creationTimestamp"]
             )
-            if at is None or at < scope.start:
+            if at is None or at < scope.start or e.get("type") != "Warning":
                 continue
             obj = e["involvedObject"]
             items.append(
@@ -231,7 +416,7 @@ class KubernetesCollector:
                         title=f"Argo CD synced {name} to {h.get('revision', '?')[:7]}",
                         detail=f"source path {h.get('source', {}).get('path', '?')}",
                         at=at,
-                        data={"app": name, "revision": h.get("revision")},
+                        data={"change": "sync", "app": name, "revision": h.get("revision")},
                     )
                 )
         return items
@@ -240,17 +425,25 @@ class KubernetesCollector:
         items = []
         for ro in body.get("items", []):
             name, status = ro["metadata"]["name"], ro.get("status", {})
-            for c in status.get("conditions", []):
-                at = _ts(c.get("lastUpdateTime"))
-                if at is None or at < scope.start:
-                    continue
+            # One item per rollout: five condition flips of one release are one fact, not five.
+            recent = [
+                c
+                for c in status.get("conditions", [])
+                if (at := _ts(c.get("lastUpdateTime"))) is not None and at >= scope.start
+            ]
+            if recent:
+                recent.sort(key=lambda c: c["lastUpdateTime"])
+                flips = "; ".join(
+                    f"{c['type']}={c['status']} ({c.get('reason', '')})" for c in recent
+                )
                 items.append(
                     Evidence(
                         kind=EvidenceKind.CHANGE,
                         source="rollouts",
-                        title=f"rollout {name}: {c['type']}={c['status']} ({c.get('reason', '')})",
-                        detail=c.get("message", ""),
-                        at=at,
+                        title=f"rollout {name} conditions changed",
+                        detail=flips,
+                        at=_ts(recent[-1]["lastUpdateTime"]),
+                        data={"change": "rollout", "rollout": name},
                     )
                 )
             if status.get("phase") not in (None, "Healthy"):
@@ -262,6 +455,8 @@ class KubernetesCollector:
                         detail=status.get("message") or "",
                         at=scope.end,
                         data={
+                            "change": "rollout",
+                            "rollout": name,
                             "canary_hash": status.get("currentPodHash"),
                             "stable_hash": status.get("stableRS"),
                         },

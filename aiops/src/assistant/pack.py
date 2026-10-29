@@ -134,7 +134,7 @@ def estimate_tokens(text: str) -> int:
 
 
 class _Draft(BaseModel):
-    rank: tuple[int, float]  # (tier, -importance): lower sorts first
+    rank: tuple[float, ...]  # (tier, -importance, ...): lower sorts first
     kind: EvidenceKind
     source: str
     title: str
@@ -210,15 +210,21 @@ def build_pack(evidence: list[Evidence], token_budget: int = DEFAULT_TOKEN_BUDGE
                 )
             )
         elif e.kind is EvidenceKind.CHANGE:
-            # Most recent change first: the closer to the incident, the more suspicious.
+            # Highest suspect score first (correlator, 7d); the "nothing changed" note leads, as
+            # it is the key fact when present; ties broken by recency.
+            score = e.data.get("suspect_score")
+            order = 2.0 if e.data.get("summary") else float(score or 0.0)
             recency = -(e.at.timestamp()) if e.at else 0.0
+            text = e.detail
+            if score is not None and not e.data.get("summary"):
+                text = f"suspect {score:.2f} ({'; '.join(e.data.get('reasons', []))}). {e.detail}"
             drafts.append(
                 _Draft(
-                    rank=(1, recency),
+                    rank=(1, -order, recency),
                     kind=e.kind,
                     source=e.source,
                     title=clean(e.title, 160),
-                    text=clean(e.detail),
+                    text=clean(text),
                     last_at=e.at,
                 )
             )

@@ -44,7 +44,7 @@ the cluster that Argo CD syncs. Releases, rollbacks and platform changes are all
 | 4 | GitOps + policy: Argo CD app-of-apps, promotion by digest via PR, Kyverno admission policies | ✅ |
 | 5 | Progressive delivery: Argo Rollouts canary with Prometheus analysis, automatic abort | ✅ |
 | 6 | Observability + SLOs: Alloy, Prometheus, Loki, Tempo, Grafana, burn-rate alerts, Traefik ingress | ✅ |
-| 7 | AIOps assistant (read-only): ✅ alert grouping · ✅ evidence collection · ⏳ evidence pack, change correlation, LLM diagnosis, Slack | 🚧 |
+| 7 | AIOps assistant (read-only): ✅ alert grouping · ✅ evidence collection · ✅ redacted evidence pack · ✅ change correlation · ⏳ LLM diagnosis, Slack | 🚧 |
 | 8 | Guarded actions: action tiers, approvals, revert PRs, audit log, kill switch | planned |
 | 9 | Chaos evaluation: 9 scenarios (incl. prompt injection) × 5 runs, assistant on vs. off | planned |
 | 10 | EKS demo (apply, record, destroy), decision notes, video | planned |
@@ -70,8 +70,8 @@ Detailed log: [docs/PROGRESS.md](docs/PROGRESS.md) · Design: [docs/PLAN.md](doc
 Alertmanager ──webhook──▶ sentinel-assistant (FastAPI)
                           1. group      alerts → 1 incident (namespace + service, 15-min window)  ✅
                           2. collect    Prometheus · Loki · K8s events · Argo CD / Rollouts       ✅
-                          3. trim       evidence pack, each item gets an ID (E1, E2…), ~6k tokens
-                          4. correlate  recent syncs / rollouts / config changes, scored
+                          3. trim       evidence pack, each item gets an ID (E1, E2…), ~6k tokens  ✅
+                          4. correlate  recent syncs / rollouts / config changes, scored            ✅
                           5. diagnose   LLM → schema-validated JSON; every claim cites an E-id;
                                         invalid → one retry → "unknown, escalate"
                           6. notify     Slack + GET /incidents

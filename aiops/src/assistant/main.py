@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException
 
 from .collectors import Collector, build_collectors, collect_all
 from .config import Settings
+from .correlator import correlate, incident_start
 from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
 from .models import Incident, WebhookPayload
@@ -67,7 +68,10 @@ async def investigate(incident: Incident, collectors: list[Collector], settings:
     except ValueError as exc:
         log.warning("incident %s: not investigated: %s", incident.id, exc)
         return
-    incident.evidence = await collect_all(scope, collectors, settings.collect_timeout_seconds)
+    evidence = await collect_all(scope, collectors, settings.collect_timeout_seconds)
+    incident.evidence = correlate(
+        evidence, incident.service, incident.namespace, incident_start(incident), scope.start
+    )
     incident.evidence_collected_at = datetime.now(UTC)
     incident.pack = build_pack(incident.evidence, settings.evidence_token_budget)
     log.info(

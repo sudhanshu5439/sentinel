@@ -106,12 +106,12 @@ def kube_handler(request: httpx.Request) -> httpx.Response:
     recent, old = "2026-10-28T11:50:00Z", "2026-10-28T09:00:00Z"
     path = request.url.path
     if path.endswith("/events"):
-        assert request.url.params["fieldSelector"] == "type=Warning"
         return httpx.Response(
             200,
             json={
                 "items": [
                     {
+                        "type": "Warning",
                         "reason": "BackOff",
                         "message": "Back-off restarting failed container",
                         "lastTimestamp": recent,
@@ -120,10 +120,20 @@ def kube_handler(request: httpx.Request) -> httpx.Response:
                         "metadata": {"creationTimestamp": recent},
                     },
                     {
+                        "type": "Warning",
                         "reason": "Unhealthy",
                         "lastTimestamp": old,  # before the window: dropped
                         "involvedObject": {"kind": "Pod", "name": "old"},
                         "metadata": {"creationTimestamp": old},
+                    },
+                    {
+                        "type": "Normal",  # not a warning: not reported as an event...
+                        "reason": "RolloutNotCompleted",
+                        # ...but it reveals a re-deployed, already existing ReplicaSet
+                        "message": "Rollout not completed, started update to revision 7 (reused)",
+                        "lastTimestamp": recent,
+                        "involvedObject": {"kind": "Rollout", "name": "order-api"},
+                        "metadata": {"creationTimestamp": recent},
                     },
                 ]
             },
@@ -165,6 +175,53 @@ def kube_handler(request: httpx.Request) -> httpx.Response:
             },
         }
         return httpx.Response(200, json={"items": [rollout]})
+    if path.endswith("/replicasets"):
+        image = "ghcr.io/sudhanshu5439/sentinel-order-api@sha256:0c49439247f1d69c33d2"
+
+        def rs(name, created, faults_config):
+            container = {"image": image, "envFrom": [{"configMapRef": {"name": faults_config}}]}
+            return {
+                "metadata": {
+                    "name": name,
+                    "creationTimestamp": created,
+                    "ownerReferences": [{"kind": "Rollout", "name": "order-api"}],
+                },
+                "spec": {"template": {"spec": {"containers": [container]}}},
+            }
+
+        # Same image, different (re-used, already existing) config: a config-only release.
+        items = [
+            rs("order-api-new", recent, "order-api-faults-bad"),
+            rs("order-api-old", old, "order-api-faults-ok"),  # the rollout's stableRS ("old")
+            rs("order-api-reused", old, "order-api-faults-slow"),  # created long ago, re-deployed
+        ]
+        return httpx.Response(200, json={"items": items})
+    if path.endswith("/analysisruns"):
+
+        def run_of(rs_hash, revision, created):
+            return {
+                "metadata": {
+                    "name": f"order-api-{rs_hash}-{revision}",
+                    "creationTimestamp": created,
+                    "labels": {"rollouts-pod-template-hash": rs_hash},
+                    "annotations": {"rollout.argoproj.io/revision": revision},
+                    "ownerReferences": [{"kind": "Rollout", "name": "order-api"}],
+                }
+            }
+
+        items = [
+            run_of("new", "8", "2026-10-28T11:50:15Z"),  # same attempt as the RS creation
+            run_of("reused", "9", "2026-10-28T11:55:00Z"),  # its event was dropped
+        ]
+        return httpx.Response(200, json={"items": items})
+    if path.endswith("/configmaps"):
+        assert "PartialObjectMetadataList" in request.headers["accept"]  # never read contents
+        items = [
+            {"metadata": {"name": "order-api-faults-5m8b668dd4", "creationTimestamp": recent}},
+            {"metadata": {"name": "kube-root-ca.crt", "creationTimestamp": recent}},
+            {"metadata": {"name": "order-api-faults-old", "creationTimestamp": old}},
+        ]
+        return httpx.Response(200, json={"items": items})
     return httpx.Response(404)
 
 
@@ -174,9 +231,45 @@ def test_kubernetes_events_syncs_and_rollouts_inside_the_window():
     assert "BackOff on Pod/order-api-abc" in titles
     assert "Argo CD synced sentinel-staging to bbbbbbb" in titles
     assert not any("aaaaaaa" in t or "tempo" in t or "old" in t for t in titles)
-    assert "rollout order-api: Progressing=False (RolloutAborted)" in titles
+    conditions = next(i for i in items if i.title == "rollout order-api conditions changed")
+    assert conditions.detail == "Progressing=False (RolloutAborted)"  # old condition left out
     degraded = next(i for i in items if i.title == "rollout order-api is Degraded")
-    assert degraded.data == {"canary_hash": "new", "stable_hash": "old"}
+    assert degraded.data["canary_hash"] == "new" and degraded.data["stable_hash"] == "old"
+
+
+def test_a_new_revision_is_diffed_against_the_previous_one():
+    items = run(KubernetesCollector(http(kube_handler), "http://kube", "argocd").collect(SCOPE))
+    by_title = {i.title: i for i in items}
+    revision = by_title["new revision of Rollout/order-api"]
+    assert revision.data == {
+        "change": "workload",
+        "owner": "order-api",
+        "image_changed": False,
+        "config_changed": True,
+    }
+    assert "image unchanged (sentinel-order-api@sha256:0c494392)" in revision.detail
+    assert "config order-api-faults-ok → order-api-faults-bad" in revision.detail
+    assert by_title["new ConfigMap order-api-faults-5m8b668dd4"].data["change"] == "config"
+    assert not any("kube-root-ca" in t or "faults-old" in t for t in by_title)
+
+
+def test_a_re_deployed_existing_revision_is_reported_from_its_rollout_event():
+    items = run(KubernetesCollector(http(kube_handler), "http://kube", "argocd").collect(SCOPE))
+    redeploy = next(i for i in items if i.title.startswith("re-deployed earlier revision"))
+    assert (
+        redeploy.title == "re-deployed earlier revision (rollout revision 7) of Rollout/order-api"
+    )
+    assert "ReplicaSet order-api-reused" in redeploy.detail
+    assert "config order-api-faults-ok → order-api-faults-slow" in redeploy.detail  # vs stable
+    assert redeploy.data["change"] == "workload" and redeploy.data["config_changed"] is True
+    # order-api-new: its creation and its AnalysisRun 15 s later are one attempt, reported once
+    assert sum(i.title == "new revision of Rollout/order-api" for i in items) == 1
+    # a re-deploy known only from its AnalysisRun (the event recorder dropped the event)
+    assert any(
+        i.title.startswith("re-deployed earlier revision (rollout revision 9)") for i in items
+    )
+    # the Normal event itself is not reported as a warning event
+    assert not any(i.kind is EvidenceKind.EVENT and "RolloutNotCompleted" in i.title for i in items)
 
 
 class Broken:

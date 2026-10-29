@@ -148,22 +148,46 @@ diagnosis → 7f Slack + deploy.
   looked "unknown". Fixed with `or 0 * total`: healthy now reads 0.
 - Anthropic API key in `.env` (git-ignored, mode 600); one test call to `claude-haiku-5-5`
   succeeded (22 in / 8 out tokens). The key was pasted into a chat once: rotate it.
+- **7d done:** change correlation (`correlator.py`). Suspect score = time (e^(-min/15); after
+  the incident start = 0.1, "a reaction") × service (alerting service 1.0, neighbour 0.5) ×
+  kind (workload revision 1.0, config 0.9, rollout status 0.3, sync 0.3 if it produced a
+  revision else 0.05). Each real change is credited to the *latest* sync before it only. When
+  nothing changed, an explicit "no workload or config change" item leads the pack (the
+  evidence scenarios 4, 5, 7 need). The pack sorts changes by score and shows the reasons.
+- What counts as "the workload changed", learned from 5 live bad releases in staging:
+  1. A new ReplicaSet, **diffed against the rollout's stable one**: image (code) vs referenced
+     ConfigMaps (config). Needed because kustomize names ConfigMaps by content hash and keeps
+     old ones (`Prune=false`): re-releasing a known config re-uses an old ConfigMap and
+     creates no new object.
+  2. A **re-deployed** existing ReplicaSet: Argo Rollouts re-uses the ReplicaSet of an
+     identical template (repeated release, rollback), so nothing new is created either.
+     Dated from its **AnalysisRun** (durable) and, best-effort, the "started update to
+     revision N" event. Events alone failed: the event recorder rate-limits per object and
+     silently dropped "revision 20" during rapid releases.
+  3. An Argo CD sync alone proves nothing (any commit anywhere moves the revision).
+- Final live run: E1 = "re-deployed revision 22 of order-api; image unchanged; config
+  …c9gc88h72k → …5m8b668dd4", suspect 1.00, the right sync credited, the reset commit's sync
+  0.04. 48 tests.
+- Small fixes: error-ratio rules read 0 when healthy (Grafana "No data" gone; gitops PR #14,
+  promtool tests still pass); Prometheus on a 2Gi volume; kind ports bound to 127.0.0.1 and
+  `make cluster` refuses to rebuild a running cluster (that change forces replacement, and
+  `apply -auto-approve` would have wiped Argo CD); old pre-GitOps `sentinel` namespace scaled
+  to 0 (deleting it, with its volume, is left to Sudhanshu).
+- RBAC the assistant will need in 7f (read-only): events, replicasets, configmaps (metadata),
+  rollouts, analysisruns in the app namespaces; applications in argocd.
 
 ## Next
 
 - [ ] Screenshot: Loki log line with trace_id → Tempo trace
-- [ ] Kind host ports listen on 0.0.0.0 (reachable from the LAN, and Prometheus/Alertmanager/
-      Rollouts have no login): set `listen_address = "127.0.0.1"` next time the cluster is recreated
-- [ ] Old `sentinel` namespace (pre-GitOps `make up`): notifier restarts a lot; delete it?
-- [ ] Grafana panels "Error rate" / "burn rate" show "No data" when there are zero errors:
-      add `or vector(0)` so healthy reads as 0, not missing
 - [ ] SLO alert test: rename `orders` table in staging → `OrderApiAvailabilityBudgetBurnFast` fires →
       rename back. (A bad canary can't trigger it: the canary aborts before the 1h window burns.)
       Capture the webhook body as a test fixture for the assistant.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
-- [ ] **7. AIOps assistant (read-only)** ← current step: 7d correlator next, then 7e LLM
-      diagnosis (Haiku, key ready), 7f Slack + deploy
+- [ ] **7. AIOps assistant (read-only)** ← current step: 7e LLM diagnosis next (Haiku, key
+      ready), then 7f Slack + deploy
+- [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`
+- [ ] Kind port binding (127.0.0.1) applies on the next `make down && make up && make gitops-up`
 - [ ] Rotate the Anthropic API key (it was pasted into a chat); store the new one with `read -s`
 - [ ] Decision note 0006 (alert storms), written by Sudhanshu
 
@@ -193,3 +217,4 @@ diagnosis → 7f Slack + deploy.
 | 28 Oct 2026 | Cluster recovered (inotify); Traefik ingress for all UIs + order-api; prod promoted; screenshots | 7b collectors |
 | 28 Oct 2026 | 7b collectors; GitHub portfolio (READMEs, profile, topics, old repos private); AI-security positioning | 7c |
 | 29 Oct 2026 | New architecture diagram; API key set up and tested; 7c evidence pack with redaction | 7d correlator |
+| 29 Oct 2026 | 7d correlator, verified on 5 live bad releases; zero-error rules, Prometheus volume, loopback ports, safe `make cluster` | 7e LLM diagnosis |
