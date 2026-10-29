@@ -174,15 +174,6 @@ verify: ## Verify a published image's signature: make verify SVC=order-api
 	  --certificate-oidc-issuer https://token.actions.githubusercontent.com | jq '.[0].optional | {Issuer, Subject}'
 	gh attestation verify oci://ghcr.io/$(OWNER)/sentinel-$(SVC):main --owner $(OWNER)
 
-##@ Docs
-
-.PHONY: diagram
-diagram: ## Regenerate docs/architecture/sentinel-architecture.png from architecture.py (in a container)
-	docker run --rm -v "$(CURDIR)/docs/architecture":/work -w /work python:3.12-slim bash -c "\
-	  apt-get update -qq >/dev/null && apt-get install -y -qq graphviz >/dev/null 2>&1 && \
-	  pip install -q --root-user-action=ignore diagrams==0.24.4 && \
-	  python architecture.py && chown $$(id -u):$$(id -g) sentinel-architecture.png"
-
 ##@ Quality
 
 .PHONY: test

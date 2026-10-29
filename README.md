@@ -24,10 +24,11 @@ personal lab, in public.
 
 ## Architecture
 
-![Sentinel architecture](docs/architecture/sentinel-architecture.png)
+![Sentinel platform architecture](docs/architecture/sentinel-architecture.png)
 
-<sub>Diagram as code: [docs/architecture/architecture.py](docs/architecture/architecture.py),
-regenerated with `make diagram`. Dashed lines are planned.</sub>
+<sub>Read it as a loop: built and signed (top), delivered by GitOps (middle), observed against
+SLOs, diagnosed and fixed back through Git (bottom). The Respond layer is in progress; see
+Status below for what is built today.</sub>
 
 Two repositories, on purpose: this one holds the code, CI and tooling;
 [**sentinel-gitops**](https://github.com/sudhanshu5439/sentinel-gitops) holds the desired state of
