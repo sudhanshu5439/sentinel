@@ -27,6 +27,14 @@ class Settings:
     collect_timeout_seconds: float
     # Upper bound for the evidence pack sent to the LLM (estimated tokens).
     evidence_token_budget: int
+    # LLM diagnosis. Off when LLM_ENABLED=false (the kill switch) or when no API key is set.
+    llm_enabled: bool = False
+    llm_model: str = "claude-haiku-5-5"
+    llm_timeout_seconds: float = 30.0
+    # Per call; Haiku's thinking tokens count toward it, so it is not just the JSON's size.
+    llm_max_tokens: int = 2000
+    # Per incident, across the first attempt and the retry. Worst case is checked before sending.
+    llm_budget_usd: float = 0.02
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -45,4 +53,10 @@ class Settings:
             lookback_minutes=max(int(os.getenv("LOOKBACK_MINUTES", "30")), 5),
             collect_timeout_seconds=float(os.getenv("COLLECT_TIMEOUT_SECONDS", "10")),
             evidence_token_budget=max(int(os.getenv("EVIDENCE_TOKEN_BUDGET", "6000")), 500),
+            llm_enabled=os.getenv("LLM_ENABLED", "true").lower() != "false"
+            and bool(os.getenv("ANTHROPIC_API_KEY")),
+            llm_model=os.getenv("LLM_MODEL", "claude-haiku-5-5"),
+            llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "30")),
+            llm_max_tokens=min(max(int(os.getenv("LLM_MAX_TOKENS", "2000")), 256), 8000),
+            llm_budget_usd=min(float(os.getenv("LLM_BUDGET_USD", "0.02")), 1.0),
         )

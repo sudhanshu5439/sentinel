@@ -1,7 +1,7 @@
 """sentinel-assistant: the read-only incident assistant.
 
 POST /webhook/alertmanager  -> group alerts into incidents; a NEW incident starts one
-                               investigation in the background (collect evidence; diagnosis next)
+                               investigation in the background (collect, correlate, pack, diagnose)
 GET  /incidents, GET /incidents/{id}
 /healthz (process alive), /readyz (ready to receive alerts)
 """
@@ -20,8 +20,10 @@ from fastapi import FastAPI, HTTPException
 from .collectors import Collector, build_collectors, collect_all
 from .config import Settings
 from .correlator import correlate, incident_start
+from .diagnosis import diagnose
 from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
+from .llm import LLM, AnthropicLLM
 from .models import Incident, WebhookPayload
 from .pack import build_pack
 
@@ -55,8 +57,10 @@ def setup_logging(service: str, version: str) -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-async def investigate(incident: Incident, collectors: list[Collector], settings: Settings) -> None:
-    """Collect the evidence for a new incident (7c trims it, 7e diagnoses it)."""
+async def investigate(
+    incident: Incident, collectors: list[Collector], settings: Settings, llm: LLM | None = None
+) -> None:
+    """Collect evidence, score changes, build the pack, then ask the LLM (once per incident)."""
     now = datetime.now(UTC)
     try:
         scope = Scope(
@@ -82,12 +86,29 @@ async def investigate(incident: Incident, collectors: list[Collector], settings:
         incident.pack.tokens_estimated,
         incident.pack.dropped or "none",
     )
+    alerts = [(a.alertname, a.severity, a.summary) for a in incident.alerts.values()]
+    incident.diagnosis = await diagnose(
+        llm, alerts, incident.pack, settings.llm_budget_usd, settings.llm_max_tokens
+    )
+    d = incident.diagnosis
+    log.info(
+        "incident %s: diagnosis %s%s (%d attempts, %d+%d tokens, $%.4f)%s",
+        incident.id,
+        d.status,
+        f" {d.diagnosis.category}/{d.diagnosis.confidence}" if d.diagnosis else "",
+        d.attempts,
+        d.input_tokens,
+        d.output_tokens,
+        d.cost_usd,
+        f": {'; '.join(d.errors)}" if d.errors else "",
+    )
 
 
 def create_app(
     settings: Settings | None = None,
     grouper: IncidentGrouper | None = None,
     collectors: list[Collector] | None = None,
+    llm: LLM | None = None,
 ) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
@@ -99,6 +120,9 @@ def create_app(
     clients = []
     if collectors is None:
         collectors, clients = build_collectors(settings)
+    if llm is None and settings.llm_enabled:
+        llm = AnthropicLLM(settings.llm_model, settings.llm_timeout_seconds)
+        clients.append(llm)
     # Strong references: the event loop only keeps weak ones, so an unreferenced task can vanish.
     running: set[asyncio.Task[None]] = set()
 
@@ -130,7 +154,7 @@ def create_app(
                 new_incidents.append(result.incident.id)
                 log.info("incident opened: %s", result.incident.id)
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
-                task = asyncio.create_task(investigate(result.incident, collectors, settings))
+                task = asyncio.create_task(investigate(result.incident, collectors, settings, llm))
                 running.add(task)
                 task.add_done_callback(running.discard)
             else:

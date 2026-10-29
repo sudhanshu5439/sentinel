@@ -1,0 +1,1331 @@
+[
+  {
+    "id": "20261029T093107Z-sentinel-prod-order-api",
+    "namespace": "sentinel-prod",
+    "service": "order-api",
+    "status": "open",
+    "opened_at": "2026-10-29T09:31:07.917030Z",
+    "last_activity_at": "2026-10-29T09:31:07.917030Z",
+    "resolved_at": null,
+    "alerts": {
+      "e2e-7e-prod-control": {
+        "fingerprint": "e2e-7e-prod-control",
+        "alertname": "OrderApiAvailabilityBudgetBurnFast",
+        "severity": "critical",
+        "status": "firing",
+        "starts_at": "2026-10-29T09:30:04Z",
+        "ends_at": null,
+        "summary": "order-api is burning its availability error budget fast in sentinel-prod",
+        "labels": {
+          "alertname": "OrderApiAvailabilityBudgetBurnFast",
+          "service": "order-api",
+          "namespace": "sentinel-prod",
+          "severity": "critical"
+        }
+      }
+    },
+    "notifications": 1,
+    "evidence": [
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api 5xx ratio (5m)",
+        "detail": "now 0, 1h earlier 0",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "order-api",
+          "now": "0",
+          "baseline": "0",
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine 5xx ratio (5m)",
+        "detail": "now 0, 1h earlier 0",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0",
+          "baseline": "0",
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api p95 latency seconds (5m)",
+        "detail": "now 0.09533, 1h earlier 0.0952",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "order-api",
+          "now": "0.09533474277660324",
+          "baseline": "0.09520056298381421",
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-prod\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine p95 latency seconds (5m)",
+        "detail": "now 0.004754, 1h earlier 0.00475",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0.004753500368459838",
+          "baseline": "0.00475",
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-prod\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api requests per second (5m)",
+        "detail": "now 4.996, 1h earlier 4.996",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "order-api",
+          "now": "4.996491228070175",
+          "baseline": "4.996491228070175",
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine requests per second (5m)",
+        "detail": "now 4.765, 1h earlier 4.789",
+        "at": "2026-10-29T09:31:07.922121Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "4.764912280701754",
+          "baseline": "4.789473684210526",
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-prod\"}[5m]))"
+        }
+      },
+      {
+        "kind": "change",
+        "source": "correlator",
+        "title": "no workload or config change before the incident",
+        "detail": "No new ReplicaSet or ConfigMap in sentinel-prod between 09:01 and 09:30 UTC: a deploy or config change is unlikely to be the cause; look at dependencies, infrastructure and load.",
+        "at": "2026-10-29T09:30:04Z",
+        "data": {
+          "change": "none",
+          "summary": true,
+          "suspect_score": 0.0,
+          "reasons": []
+        }
+      }
+    ],
+    "evidence_collected_at": "2026-10-29T09:31:08.279471Z",
+    "pack": {
+      "items": [
+        {
+          "id": "E1",
+          "kind": "change",
+          "source": "correlator",
+          "title": "no workload or config change before the incident",
+          "text": "No new ReplicaSet or ConfigMap in sentinel-prod between 09:01 and 09:30 UTC: a deploy or config change is unlikely to be the cause; look at dependencies, infrastructure and load.",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:30:04Z"
+        },
+        {
+          "id": "E2",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine requests per second (5m)",
+          "text": "now 4.765, 1h earlier 4.789",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        },
+        {
+          "id": "E3",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api p95 latency seconds (5m)",
+          "text": "now 0.09533, 1h earlier 0.0952",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        },
+        {
+          "id": "E4",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine p95 latency seconds (5m)",
+          "text": "now 0.004754, 1h earlier 0.00475",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        },
+        {
+          "id": "E5",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api 5xx ratio (5m)",
+          "text": "now 0, 1h earlier 0",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        },
+        {
+          "id": "E6",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine 5xx ratio (5m)",
+          "text": "now 0, 1h earlier 0",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        },
+        {
+          "id": "E7",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api requests per second (5m)",
+          "text": "now 4.996, 1h earlier 4.996",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.922121Z"
+        }
+      ],
+      "token_budget": 6000,
+      "tokens_estimated": 212,
+      "dropped": {},
+      "raw_items": 7
+    },
+    "diagnosis": {
+      "status": "diagnosed",
+      "model": "claude-haiku-5-5",
+      "diagnosis": {
+        "summary": "order-api fast availability budget burn alert is not reproduced by the evidence: 5xx ratio is 0 for order-api and risk-engine, latency and request rates match the prior hour, and no workload or config change occurred before the incident. Cause is unknown.",
+        "category": "unknown",
+        "confidence": "low",
+        "probable_cause": {
+          "statement": "The evidence does not identify a cause. The error signal behind the budget burn is absent from the metrics provided.",
+          "evidence": [
+            "E5",
+            "E6"
+          ]
+        },
+        "supporting": [
+          {
+            "statement": "No new ReplicaSet or ConfigMap in sentinel-prod in the 09:01-09:30 window, so a deployment or config change is unlikely.",
+            "evidence": [
+              "E1"
+            ]
+          },
+          {
+            "statement": "order-api 5xx ratio is 0 now and was 0 an hour earlier, so the metrics show no server errors.",
+            "evidence": [
+              "E5"
+            ]
+          },
+          {
+            "statement": "order-api p95 latency and request rate are unchanged from an hour earlier, so no latency or load change is visible.",
+            "evidence": [
+              "E3",
+              "E7"
+            ]
+          },
+          {
+            "statement": "risk-engine latency, 5xx ratio and request rate are also unchanged, so the known downstream dependency shows no sign of stress.",
+            "evidence": [
+              "E2",
+              "E4",
+              "E6"
+            ]
+          }
+        ],
+        "missing_evidence": [
+          "Which error signal drives the budget burn (for example, a non-5xx failure class, timeouts or client-side errors) and its burn-rate calculation over the alert window.",
+          "order-api and risk-engine logs and Kubernetes events for the alert window.",
+          "Metrics for other dependencies of order-api beyond risk-engine (database, cache, payment or downstream services).",
+          "Node and pod resource metrics (CPU, memory, restarts, OOM) for sentinel-prod.",
+          "Whether the burn is ongoing or already over, since the metrics pack shows only a point-in-time view at 09:31."
+        ],
+        "injection_suspected": false
+      },
+      "attempts": 1,
+      "input_tokens": 1705,
+      "output_tokens": 981,
+      "cost_usd": 0.000661,
+      "budget_usd": 0.02,
+      "errors": [],
+      "prompt_sha256": "b2407daa053ff6d0afac31b43f85d026c238dff89e7c80dd494cbe2e8c4840d9",
+      "request_ids": [
+        "req_011CgWJ5xR3d2xzFxgzpaQpg"
+      ],
+      "finished_at": "2026-10-29T09:31:15.241421Z"
+    }
+  },
+  {
+    "id": "20261029T093107Z-sentinel-staging-order-api",
+    "namespace": "sentinel-staging",
+    "service": "order-api",
+    "status": "open",
+    "opened_at": "2026-10-29T09:31:07.875526Z",
+    "last_activity_at": "2026-10-29T09:31:07.875526Z",
+    "resolved_at": null,
+    "alerts": {
+      "e2e-7e-staging": {
+        "fingerprint": "e2e-7e-staging",
+        "alertname": "OrderApiAvailabilityBudgetBurnFast",
+        "severity": "critical",
+        "status": "firing",
+        "starts_at": "2026-10-29T09:30:04Z",
+        "ends_at": null,
+        "summary": "order-api is burning its availability error budget fast in sentinel-staging",
+        "labels": {
+          "alertname": "OrderApiAvailabilityBudgetBurnFast",
+          "service": "order-api",
+          "namespace": "sentinel-staging",
+          "severity": "critical"
+        }
+      }
+    },
+    "notifications": 1,
+    "evidence": [
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api 5xx ratio (5m)",
+        "detail": "now 0.02653, 1h earlier 0",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "order-api",
+          "now": "0.026530222060029238",
+          "baseline": "0",
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine 5xx ratio (5m)",
+        "detail": "now 0, 1h earlier 0",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0",
+          "baseline": "0",
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine p95 latency seconds (5m)",
+        "detail": "now 0.004772, 1h earlier 0.00475",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0.00477175572519084",
+          "baseline": "0.00475",
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api p95 latency seconds (5m)",
+        "detail": "now 0.09533, 1h earlier 0.0952",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "order-api",
+          "now": "0.09533466140521948",
+          "baseline": "0.09520070422535211",
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine requests per second (5m)",
+        "detail": "now 4.618, 1h earlier 4.754",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "4.617543859649122",
+          "baseline": "4.75438596491228",
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api requests per second (5m)",
+        "detail": "now 4.995, 1h earlier 4.993",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "app": "order-api",
+          "now": "4.994924058479532",
+          "baseline": "4.99298245614035",
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:52+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"ad896979a4e70ceffef74249e288deb9\"}\n",
+        "at": "2026-10-29T09:27:52.843414Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:52+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"3154a1e2516f1967fb50eb21f425dcc9\"}\n",
+        "at": "2026-10-29T09:27:52.043426Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:49+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"2a040ef842926f42591bd5c737e6f7c4\"}\n",
+        "at": "2026-10-29T09:27:49.839413Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:48+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"f68f2e8cd0d52c0015f4b4f75b7d9327\"}\n",
+        "at": "2026-10-29T09:27:48.638469Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:43+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"11de89d66bf97169368c914cf240f09d\"}\n",
+        "at": "2026-10-29T09:27:43.634805Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:42+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"3b7e4770ae422c1340ceaab000adc566\"}\n",
+        "at": "2026-10-29T09:27:42.034290Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:39+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"39337808c2c7808ef6ec2e8f932667f5\"}\n",
+        "at": "2026-10-29T09:27:39.632345Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:36+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"adee7ffa1423b93685c3d7a56d1fb8de\"}\n",
+        "at": "2026-10-29T09:27:36.227200Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:34+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"b5adab3e06f46f9b7197cb4028f9911b\"}\n",
+        "at": "2026-10-29T09:27:34.228086Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:33+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"727256faf48927ad32945cc11aee8f9c\"}\n",
+        "at": "2026-10-29T09:27:33.024433Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:25+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"f384099315b1b0477ebeccf316c64073\"}\n",
+        "at": "2026-10-29T09:27:25.618479Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:25+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"96594d776c36dbad53dea4cf8d760bb7\"}\n",
+        "at": "2026-10-29T09:27:25.018005Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:19+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"b67a2ccc9958e57101103c93a9cea682\"}\n",
+        "at": "2026-10-29T09:27:19.612849Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:18+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"f22aa050a49a3e963bb53d6926bf0bc5\"}\n",
+        "at": "2026-10-29T09:27:18.613468Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:16+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"c390b8def7d01b359df4c195e84b0ac8\"}\n",
+        "at": "2026-10-29T09:27:16.211614Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:14+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"489605f8f3144293daef35cf8f0c3f29\"}\n",
+        "at": "2026-10-29T09:27:14.808307Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:14+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"c3270331c4dec1424d1d3da421efce60\"}\n",
+        "at": "2026-10-29T09:27:14.608437Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:08+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"7e49055cc2cd479fbf3d519ffeed3709\"}\n",
+        "at": "2026-10-29T09:27:08.998527Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:03+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"74168c6726f540d57c66b9ccda558037\"}\n",
+        "at": "2026-10-29T09:27:03.393262Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:27:01+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"c308baa88f8807a2cdb75f4b4eedaff4\"}\n",
+        "at": "2026-10-29T09:27:01.592232Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-qvtvb"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:31:00+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"5965636b46853123b9e64ded243736f4\"}\n",
+        "at": "2026-10-29T09:31:00.874621Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:59+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"8bf55617c2962dab9df7f764a4e198f0\"}\n",
+        "at": "2026-10-29T09:30:59.672094Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:57+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"96c174ef63c4385c0fae111d93eb92a9\"}\n",
+        "at": "2026-10-29T09:30:57.871090Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:54+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"72fcbeeea28651115c50ebaca74bf9d9\"}\n",
+        "at": "2026-10-29T09:30:54.667282Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:54+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"bd3b825ff286d479f3ecd0e8e7a6eac9\"}\n",
+        "at": "2026-10-29T09:30:54.470231Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:51+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"631f8134901bc67e30e715097d3fb16d\"}\n",
+        "at": "2026-10-29T09:30:51.865682Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:50+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"849689d78383dce5f25b7d6143e1f934\"}\n",
+        "at": "2026-10-29T09:30:50.867305Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:43+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"3aa71b92a6db3b1071535b81dceee0eb\"}\n",
+        "at": "2026-10-29T09:30:43.059972Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:36+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"b1f63bdae00bf079ce17afffe8dc97ac\"}\n",
+        "at": "2026-10-29T09:30:36.253813Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:30+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"755dbd5ba0c4bff2a0cbf1454eb20a90\"}\n",
+        "at": "2026-10-29T09:30:30.850735Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:30+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"63a409635749ee31d88d0e744c48295b\"}\n",
+        "at": "2026-10-29T09:30:30.648386Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:28+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"c0488ce5a09f5972766d469c43bd1de2\"}\n",
+        "at": "2026-10-29T09:30:28.049347Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:27+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"8f6402c97d5c7872fb6184a992ab3232\"}\n",
+        "at": "2026-10-29T09:30:27.848744Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:27+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"2e5043946592feb03e0752bf81e013d1\"}\n",
+        "at": "2026-10-29T09:30:27.047223Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:26+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"a5051418b71fc98ee303d9b962423b0f\"}\n",
+        "at": "2026-10-29T09:30:26.644799Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:21+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"49cfb69caf9cd3aeac0291fe5b690c62\"}\n",
+        "at": "2026-10-29T09:30:21.043160Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:17+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"d41063d299579d502a7cc3753228c241\"}\n",
+        "at": "2026-10-29T09:30:17.840996Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:09+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"b866e81aa22d9c1c4bb090cdbb6d4065\"}\n",
+        "at": "2026-10-29T09:30:09.033111Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api error log",
+        "detail": "{\"ts\": \"2026-10-29T09:30:07+0000\", \"level\": \"error\", \"service\": \"order-api\", \"version\": \"dev\", \"logger\": \"order_api\", \"msg\": \"injected fault: returning 500\", \"trace_id\": \"817c28a751e0f0b0032c54e6da710c88\"}\n",
+        "at": "2026-10-29T09:30:07.428841Z",
+        "data": {
+          "app": "order-api",
+          "pod": "order-api-58cb94cdf4-srwlw"
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "MetricFailed on AnalysisRun/order-api-58cb94cdf4-24",
+        "detail": "Metric 'error-rate' Completed. Result: Failed",
+        "at": "2026-10-29T09:28:00Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on AnalysisRun/order-api-58cb94cdf4-24",
+        "detail": "Analysis Completed. Result: Failed",
+        "at": "2026-10-29T09:28:00Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "MetricFailed on AnalysisRun/order-api-58cb94cdf4-26",
+        "detail": "Metric 'error-rate' Completed. Result: Failed",
+        "at": "2026-10-29T09:31:04Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on AnalysisRun/order-api-58cb94cdf4-26",
+        "detail": "Analysis Completed. Result: Failed",
+        "at": "2026-10-29T09:31:04Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-58cb94cdf4-qvtvb",
+        "detail": "Startup probe failed: Get \"http://10.244.1.33:8000/healthz\": dial tcp 10.244.1.33:8000: connect: connection refused",
+        "at": "2026-10-29T09:26:57Z",
+        "data": {
+          "count": 5
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-58cb94cdf4-srwlw",
+        "detail": "Startup probe failed: Get \"http://10.244.2.30:8000/healthz\": dial tcp 10.244.2.30:8000: connect: connection refused",
+        "at": "2026-10-29T09:30:01Z",
+        "data": {
+          "count": 4
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-fb66ff594-945sb",
+        "detail": "Startup probe failed: Get \"http://10.244.1.34:8000/healthz\": dial tcp 10.244.1.34:8000: connect: connection refused",
+        "at": "2026-10-29T09:28:12Z",
+        "data": {
+          "count": 5
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-fb66ff594-9tpvf",
+        "detail": "Readiness probe failed: Get \"http://10.244.1.32:8000/readyz\": dial tcp 10.244.1.32:8000: connect: connection refused",
+        "at": "2026-10-29T09:26:39Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-fb66ff594-bkn2k",
+        "detail": "Startup probe failed: Get \"http://10.244.1.35:8000/healthz\": dial tcp 10.244.1.35:8000: connect: connection refused",
+        "at": "2026-10-29T09:31:07Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on Rollout/order-api",
+        "detail": "Background Analysis Run 'order-api-58cb94cdf4-24' Status New: 'Failed' Previous: 'Running'",
+        "at": "2026-10-29T09:28:00Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "RolloutAborted on Rollout/order-api",
+        "detail": "Rollout aborted update to revision 24: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+        "at": "2026-10-29T09:28:00Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on Rollout/order-api",
+        "detail": "Background Analysis Run 'order-api-58cb94cdf4-26' Status New: 'Failed' Previous: 'Running'",
+        "at": "2026-10-29T09:31:04Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "RolloutAborted on Rollout/order-api",
+        "detail": "Rollout aborted update to revision 26: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+        "at": "2026-10-29T09:31:04Z",
+        "data": {
+          "count": 1
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 3f82ce1",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-29T09:26:40Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "3f82ce19e3458458fe8a645b578bc79ea48e606e",
+          "suspect_score": 0.24,
+          "reasons": [
+            "3 min before the incident",
+            "produced: re-deployed earlier revision (rollout revision 24) of Rollout/order-api"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 9acdd2b",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-29T09:29:17Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "9acdd2b94d7cd76360fc3936939803e2974eeed0",
+          "suspect_score": 0.05,
+          "reasons": [
+            "1 min before the incident",
+            "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 470db17",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-29T09:29:52Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "470db17806c8bed6fdd34c359d77edaf26646e16",
+          "suspect_score": 0.3,
+          "reasons": [
+            "0 min before the incident",
+            "produced: re-deployed earlier revision (rollout revision 26) of Rollout/order-api"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "rollouts",
+        "title": "rollout order-api conditions changed",
+        "detail": "Healthy=False (RolloutHealthy); Completed=False (RolloutCompleted); Paused=True (RolloutPaused); Progressing=False (RolloutAborted); Available=False (AvailableReason)",
+        "at": "2026-10-29T09:31:04Z",
+        "data": {
+          "change": "rollout",
+          "rollout": "order-api",
+          "suspect_score": 0.3,
+          "reasons": [
+            "0 min before the incident",
+            "order-api itself"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "rollouts",
+        "title": "rollout order-api is Degraded",
+        "detail": "RolloutAborted: Rollout aborted update to revision 26: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+        "at": "2026-10-29T09:31:07.879606Z",
+        "data": {
+          "change": "rollout",
+          "rollout": "order-api",
+          "canary_hash": "58cb94cdf4",
+          "stable_hash": "fb66ff594",
+          "suspect_score": 0.3,
+          "reasons": [
+            "0 min before the incident",
+            "order-api itself"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "kubernetes",
+        "title": "re-deployed earlier revision (rollout revision 24) of Rollout/order-api",
+        "detail": "ReplicaSet order-api-58cb94cdf4; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-5m8b668dd4",
+        "at": "2026-10-29T09:26:37Z",
+        "data": {
+          "change": "workload",
+          "owner": "order-api",
+          "image_changed": false,
+          "config_changed": true,
+          "suspect_score": 0.79,
+          "reasons": [
+            "3 min before the incident",
+            "order-api itself"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "kubernetes",
+        "title": "re-deployed earlier revision (rollout revision 26) of Rollout/order-api",
+        "detail": "ReplicaSet order-api-58cb94cdf4; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-5m8b668dd4",
+        "at": "2026-10-29T09:29:51Z",
+        "data": {
+          "change": "workload",
+          "owner": "order-api",
+          "image_changed": false,
+          "config_changed": true,
+          "suspect_score": 0.99,
+          "reasons": [
+            "0 min before the incident",
+            "order-api itself"
+          ]
+        }
+      }
+    ],
+    "evidence_collected_at": "2026-10-29T09:31:08.287412Z",
+    "pack": {
+      "items": [
+        {
+          "id": "E1",
+          "kind": "change",
+          "source": "kubernetes",
+          "title": "re-deployed earlier revision (rollout revision 26) of Rollout/order-api",
+          "text": "suspect 0.99 (0 min before the incident; order-api itself). ReplicaSet order-api-58cb94cdf4; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-5m8b668dd4",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:29:51Z"
+        },
+        {
+          "id": "E2",
+          "kind": "change",
+          "source": "kubernetes",
+          "title": "re-deployed earlier revision (rollout revision 24) of Rollout/order-api",
+          "text": "suspect 0.79 (3 min before the incident; order-api itself). ReplicaSet order-api-58cb94cdf4; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-5m8b668dd4",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:26:37Z"
+        },
+        {
+          "id": "E3",
+          "kind": "change",
+          "source": "rollouts",
+          "title": "rollout order-api is Degraded",
+          "text": "suspect 0.30 (0 min before the incident; order-api itself). RolloutAborted: Rollout aborted update to revision 26: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E4",
+          "kind": "change",
+          "source": "rollouts",
+          "title": "rollout order-api conditions changed",
+          "text": "suspect 0.30 (0 min before the incident; order-api itself). Healthy=False (RolloutHealthy); Completed=False (RolloutCompleted); Paused=True (RolloutPaused); Progressing=False (RolloutAborted); Available=False (AvailableReason)",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:04Z"
+        },
+        {
+          "id": "E5",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to 470db17",
+          "text": "suspect 0.30 (0 min before the incident; produced: re-deployed earlier revision (rollout revision 26) of Rollout/order-api). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:29:52Z"
+        },
+        {
+          "id": "E6",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to 3f82ce1",
+          "text": "suspect 0.24 (3 min before the incident; produced: re-deployed earlier revision (rollout revision 24) of Rollout/order-api). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:26:40Z"
+        },
+        {
+          "id": "E7",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to 9acdd2b",
+          "text": "suspect 0.05 (1 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:29:17Z"
+        },
+        {
+          "id": "E8",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api 5xx ratio (5m)",
+          "text": "now 0.02653, 1h earlier 0",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E9",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine requests per second (5m)",
+          "text": "now 4.618, 1h earlier 4.754",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E10",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine p95 latency seconds (5m)",
+          "text": "now 0.004772, 1h earlier 0.00475",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E11",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api p95 latency seconds (5m)",
+          "text": "now 0.09533, 1h earlier 0.0952",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E12",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api requests per second (5m)",
+          "text": "now 4.995, 1h earlier 4.993",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E13",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine 5xx ratio (5m)",
+          "text": "now 0, 1h earlier 0",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-29T09:31:07.879606Z"
+        },
+        {
+          "id": "E14",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "Unhealthy on Pod/order-api-58cb94cdf4-qvtvb, Pod/order-api-58cb94cdf4-srwlw, Pod/order-api-fb66ff594-945sb (+1 more)",
+          "text": "Startup probe failed: Get \"http://10.244.1.35:8000/healthz\": dial tcp 10.244.1.35:8000: connect: connection refused",
+          "count": 15,
+          "first_at": "2026-10-29T09:26:57Z",
+          "last_at": "2026-10-29T09:31:07Z"
+        },
+        {
+          "id": "E15",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "MetricFailed on AnalysisRun/order-api-58cb94cdf4-24, AnalysisRun/order-api-58cb94cdf4-26",
+          "text": "Metric 'error-rate' Completed. Result: Failed",
+          "count": 2,
+          "first_at": "2026-10-29T09:28:00Z",
+          "last_at": "2026-10-29T09:31:04Z"
+        },
+        {
+          "id": "E16",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "AnalysisRunFailed on AnalysisRun/order-api-58cb94cdf4-24, AnalysisRun/order-api-58cb94cdf4-26",
+          "text": "Analysis Completed. Result: Failed",
+          "count": 2,
+          "first_at": "2026-10-29T09:28:00Z",
+          "last_at": "2026-10-29T09:31:04Z"
+        },
+        {
+          "id": "E17",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "AnalysisRunFailed on Rollout/order-api",
+          "text": "Background Analysis Run 'order-api-58cb94cdf4-26' Status New: 'Failed' Previous: 'Running'",
+          "count": 2,
+          "first_at": "2026-10-29T09:28:00Z",
+          "last_at": "2026-10-29T09:31:04Z"
+        },
+        {
+          "id": "E18",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "RolloutAborted on Rollout/order-api",
+          "text": "Rollout aborted update to revision 26: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+          "count": 2,
+          "first_at": "2026-10-29T09:28:00Z",
+          "last_at": "2026-10-29T09:31:04Z"
+        },
+        {
+          "id": "E19",
+          "kind": "event",
+          "source": "kubernetes",
+          "title": "Unhealthy on Pod/order-api-fb66ff594-9tpvf",
+          "text": "Readiness probe failed: Get \"http://10.244.1.32:8000/readyz\": dial tcp 10.244.1.32:8000: connect: connection refused",
+          "count": 1,
+          "first_at": "2026-10-29T09:26:39Z",
+          "last_at": "2026-10-29T09:26:39Z"
+        },
+        {
+          "id": "E20",
+          "kind": "log",
+          "source": "loki",
+          "title": "order-api error log",
+          "text": "injected fault: returning 500",
+          "count": 39,
+          "first_at": "2026-10-29T09:27:01.592232Z",
+          "last_at": "2026-10-29T09:31:00.874621Z"
+        }
+      ],
+      "token_budget": 6000,
+      "tokens_estimated": 967,
+      "dropped": {},
+      "raw_items": 65
+    },
+    "diagnosis": {
+      "status": "diagnosed",
+      "model": "claude-haiku-5-5",
+      "diagnosis": {
+        "summary": "order-api in sentinel-staging is returning 5xx (ratio 0.027 vs 0 an hour earlier) after two redeploys of the same image with a config change (faults config hash). Rollout revision 26 was aborted by a failed error-rate analysis; logs show injected 500 faults.",
+        "category": "config_change",
+        "confidence": "high",
+        "probable_cause": {
+          "statement": "The faults ConfigMap change (order-api-faults-c9gc88h72k to order-api-faults-5m8b668dd4) deployed with the same image caused order-api to return injected HTTP 500s, failing the error-rate analysis and aborting the rollout.",
+          "evidence": [
+            "E1",
+            "E2",
+            "E20",
+            "E8",
+            "E17",
+            "E18"
+          ]
+        },
+        "supporting": [
+          {
+            "statement": "Image digest was unchanged across the revisions, so the change was configuration, not a new image.",
+            "evidence": [
+              "E1",
+              "E2"
+            ]
+          },
+          {
+            "statement": "Argo CD synced staging to new commits right before each re-deployment, consistent with the config change being applied.",
+            "evidence": [
+              "E5",
+              "E6"
+            ]
+          },
+          {
+            "statement": "Pod startup and readiness probes failed with connection refused on order-api pods, consistent with the service not serving after the change.",
+            "evidence": [
+              "E14",
+              "E19"
+            ]
+          },
+          {
+            "statement": "Dependencies and other services look healthy: risk-engine error rate, latency and traffic are flat, so the failure is local to order-api.",
+            "evidence": [
+              "E9",
+              "E10",
+              "E13",
+              "E11",
+              "E12"
+            ]
+          }
+        ],
+        "missing_evidence": [
+          "The contents of the faults ConfigMap diff are not in the pack, so the exact injected fault setting is unconfirmed.",
+          "No pod-level logs explaining why the startup probe failed on the new pods.",
+          "Whether the 500s are limited to a fault-injection path or affect all order-api requests is not shown beyond the 5xx ratio."
+        ],
+        "injection_suspected": false
+      },
+      "attempts": 1,
+      "input_tokens": 3144,
+      "output_tokens": 610,
+      "cost_usd": 0.000619,
+      "budget_usd": 0.02,
+      "errors": [],
+      "prompt_sha256": "9813294e26c5b66df9dd6e737bad73ab0987203667e9f6eeda003eda7dfb6723",
+      "request_ids": [
+        "req_011CgWJ5xQJVvbyRkmyMDJFx"
+      ],
+      "finished_at": "2026-10-29T09:31:13.825659Z"
+    }
+  }
+]

@@ -175,6 +175,28 @@ diagnosis → 7f Slack + deploy.
   to 0 (deleting it, with its volume, is left to Sudhanshu).
 - RBAC the assistant will need in 7f (read-only): events, replicasets, configmaps (metadata),
   rollouts, analysisruns in the app namespaces; applications in argocd.
+- **7e done:** LLM diagnosis (`diagnosis.py`, `llm.py`), `claude-haiku-5-5` via the official
+  `anthropic` SDK (2.3). The model gets the pack inside `<evidence>` tags (a closing tag inside
+  the data is defused) and a system prompt that calls the evidence untrusted data. Output is
+  JSON-schema-constrained, then validated by code: every claim cites ≥1 ID that exists in the
+  pack; `bad_release`/`config_change` must cite a CHANGE item; `unknown` cannot be high
+  confidence; ≤6 supporting claims; output cleaned (redaction, control chars, length) before
+  humans see it. Invalid → one retry with the errors → still invalid = `escalate` (never a
+  guess). Guardrails: 30 s timeout, 1 SDK retry, `max_tokens` 2000, effort low, $0.02
+  per-incident budget checked against the *worst case* before each call; unknown model price =
+  refused; `LLM_ENABLED=false` kill switch (no key = off too). Prompt SHA-256, token counts,
+  cost and request IDs stored on the incident (input for the Step 8 audit log). No tools, no
+  commands: Step 8 maps the category to allow-listed actions. 13 new tests with a fake LLM (61
+  total).
+- Live run ([evidence](evidence/2026-10-29-7e-llm-diagnosis/README.md)): a real 30 %-errors
+  config release in staging → `config_change`/high, cause cites E1 (same image, faults ConfigMap
+  c9gc → 5m8b), 1 attempt, $0.0006. Control: a hand-sent alert for healthy, unchanged prod →
+  `unknown`/low, "alert not reproduced by the evidence", $0.0007. Prompt hashes reproducible
+  from the stored packs. Weak spot seen: start-up probe failures read as a symptom (they are
+  normal while a pod starts).
+- Found on the way: the first live run lost both webhooks silently. The SDK import made the
+  server start slower than the script's `sleep 4`, and `curl -s` hid the refusal. Wait on
+  `/healthz` and fail loudly (also what a readiness probe is for).
 
 ## Next
 
@@ -184,8 +206,10 @@ diagnosis → 7f Slack + deploy.
       Capture the webhook body as a test fixture for the assistant.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
-- [ ] **7. AIOps assistant (read-only)** ← current step: 7e LLM diagnosis next (Haiku, key
-      ready), then 7f Slack + deploy
+- [ ] **7. AIOps assistant (read-only)** ← current step: 7f next: Slack notification, deploy
+      to an `aiops` namespace (signed image, read-only RBAC, API key from a Secret), Alertmanager
+      receiver. Needs a Slack workspace + incoming webhook from Sudhanshu.
+- [ ] Pack: mark probe failures shortly after pod start as start-up noise (seen in 7e live run)
 - [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`
 - [ ] Kind port binding (127.0.0.1) applies on the next `make down && make up && make gitops-up`
 - [ ] Rotate the Anthropic API key (it was pasted into a chat); store the new one with `read -s`
@@ -198,8 +222,8 @@ diagnosis → 7f Slack + deploy.
 - postgres and redis are still referenced by tag (Docker Hub isn't reachable from the cloud workspace
   to resolve digests). Pin them by digest from the laptop.
 - Kyverno doesn't yet verify the SLSA provenance attestation (only the signature): next hardening step.
-- LLM for 7e: hosted API (small model) behind an `LLMClient` interface with a fake for tests;
-  Ollama doesn't fit next to the stack in ~10 GB. Final choice at 7e.
+- LLM for 7e: decided: hosted `claude-haiku-5-5` behind an `LLM` protocol with a fake for tests;
+  Ollama doesn't fit next to the stack in ~10 GB. ~$0.0006 per incident measured (one run).
 - Known gap: an incident whose resolve notification never arrives stays open forever and swallows
   later alerts for that service. Revisit with durable storage (Step 8).
 - `go` isn't on PATH in non-interactive WSL shells, so `make lint` stops at risk-engine there.
@@ -218,3 +242,4 @@ diagnosis → 7f Slack + deploy.
 | 28 Oct 2026 | 7b collectors; GitHub portfolio (READMEs, profile, topics, old repos private); AI-security positioning | 7c |
 | 29 Oct 2026 | New architecture diagram; API key set up and tested; 7c evidence pack with redaction | 7d correlator |
 | 29 Oct 2026 | 7d correlator, verified on 5 live bad releases; zero-error rules, Prometheus volume, loopback ports, safe `make cluster` | 7e LLM diagnosis |
+| 29 Oct 2026 | 7e LLM diagnosis (Haiku, cited + validated, retry → escalate, budget, kill switch); live bad release + control run saved as evidence | 7f Slack + deploy |

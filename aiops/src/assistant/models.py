@@ -10,6 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .diagnosis import DiagnosisResult
 from .evidence import Evidence
 from .pack import EvidencePack
 
@@ -74,3 +75,5 @@ class Incident(BaseModel):
     evidence_collected_at: datetime | None = None
     # What the LLM will see: redacted, collapsed, ranked, numbered E1..En, within a token budget.
     pack: EvidencePack | None = None
+    # The LLM's cited diagnosis, or an explicit escalation / skip with the reasons (7e).
+    diagnosis: DiagnosisResult | None = None
