@@ -29,17 +29,21 @@ resource "kind_cluster" "this" {
 
     node {
       role = "control-plane"
-      # Label used later by ingress-nginx; ports 8080/8443 on the laptop map to 80/443 in the cluster.
+      # Label used by the Traefik ingress; ports 8080/8443 on the laptop map to 80/443 in the cluster.
       kubeadm_config_patches = [
         "kind: InitConfiguration\nnodeRegistration:\n  kubeletExtraArgs:\n    node-labels: \"ingress-ready=true\"\n"
       ]
+      # Loopback only: Prometheus, Alertmanager and the Rollouts dashboard have no login, so they
+      # must not be reachable from other devices on the Wi-Fi (the default is 0.0.0.0).
       extra_port_mappings {
         container_port = 80
         host_port      = 8080
+        listen_address = "127.0.0.1"
       }
       extra_port_mappings {
         container_port = 443
         host_port      = 8443
+        listen_address = "127.0.0.1"
       }
     }
 

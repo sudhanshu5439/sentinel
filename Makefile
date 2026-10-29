@@ -45,8 +45,14 @@ logs: ## Tail logs of one service: make logs SVC=order-api
 
 .PHONY: cluster
 cluster: ## Create the kind cluster with Terraform (1 control plane + 2 workers)
-	terraform -chdir=$(TF_LOCAL) init -input=false -upgrade >/dev/null
-	terraform -chdir=$(TF_LOCAL) apply -input=false -auto-approve
+	@# Most changes to a kind cluster's definition force a full rebuild. Never let `make up` do that
+	@# silently to a running cluster (it would wipe Argo CD and everything it deployed).
+	@if kind get clusters 2>/dev/null | grep -qx $(CLUSTER); then \
+	  echo "cluster '$(CLUSTER)' already exists: skipping Terraform (run 'make down' first to apply definition changes)"; \
+	else \
+	  terraform -chdir=$(TF_LOCAL) init -input=false -upgrade >/dev/null && \
+	  terraform -chdir=$(TF_LOCAL) apply -input=false -auto-approve; \
+	fi
 	kind export kubeconfig --name $(CLUSTER)
 
 .PHONY: images
