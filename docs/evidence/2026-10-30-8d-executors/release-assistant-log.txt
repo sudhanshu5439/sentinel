@@ -1,0 +1,6 @@
+2026-10-30T12:26:40+0000  incident opened: 20261030T122640Z-sentinel-staging-order-api
+2026-10-30T12:26:41+0000  incident 20261030T122640Z-sentinel-staging-order-api: 222 evidence items -> pack of 25 (~1117 tokens, dropped none)
+2026-10-30T12:26:50+0000  incident 20261030T122640Z-sentinel-staging-order-api: diagnosis diagnosed config_change/high (1 attempts, 3674+1264 tokens, $0.0010)
+2026-10-30T12:26:50+0000  incident 20261030T122640Z-sentinel-staging-order-api: decision abort_canary tier 1 dry_run
+2026-10-30T12:26:50+0000  incident 20261030T122640Z-sentinel-staging-order-api: abort_canary dry_run: would PATCH rollouts/order-api/status abort=true in sentinel-staging
+2026-10-30T12:26:50+0000  incident 20261030T122640Z-sentinel-staging-order-api: posted to Slack

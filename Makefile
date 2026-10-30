@@ -126,6 +126,7 @@ aiops-secrets: ## Create/refresh the assistant's and audit DB's Secrets from .en
 	@set -a; . ./.env; set +a; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	  printf '%s' "$$ANTHROPIC_API_KEY" > "$$tmp/ANTHROPIC_API_KEY"; \
 	  printf '%s' "$$SLACK_WEBHOOK_URL" > "$$tmp/SLACK_WEBHOOK_URL"; \
+	  printf '%s' "$${GITHUB_TOKEN:-}" > "$$tmp/GITHUB_TOKEN"; \
 	  printf 'postgresql://assistant:%s@audit-db.aiops.svc:5432/audit?connect_timeout=5' \
 	    "$$AUDIT_DB_ASSISTANT_PASSWORD" > "$$tmp/AUDIT_DATABASE_URL"; \
 	  printf '%s' "$$AUDIT_DB_ADMIN_PASSWORD" > "$$tmp/POSTGRES_PASSWORD"; \
@@ -133,7 +134,7 @@ aiops-secrets: ## Create/refresh the assistant's and audit DB's Secrets from .en
 	  printf '%s' "$$AUDIT_DB_GRAFANA_PASSWORD" > "$$tmp/GRAFANA_PASSWORD"; \
 	  kubectl -n aiops create secret generic sentinel-assistant \
 	    --from-file="$$tmp/ANTHROPIC_API_KEY" --from-file="$$tmp/SLACK_WEBHOOK_URL" \
-	    --from-file="$$tmp/AUDIT_DATABASE_URL" \
+	    --from-file="$$tmp/AUDIT_DATABASE_URL" --from-file="$$tmp/GITHUB_TOKEN" \
 	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/sentinel-assistant up to date"; \
 	  kubectl -n aiops create secret generic audit-db \
 	    --from-file="$$tmp/POSTGRES_PASSWORD" --from-file="$$tmp/ASSISTANT_PASSWORD" \

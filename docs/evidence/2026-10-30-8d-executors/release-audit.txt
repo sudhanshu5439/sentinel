@@ -1,0 +1,7 @@
+ id |              at               |   event   |   category    | confidence |    action    | tier |  status   |    prompt_sha    |     pack_sha     | cost_usd 
+----+-------------------------------+-----------+---------------+------------+--------------+------+-----------+------------------+------------------+----------
+  8 | 2026-10-30 12:26:50.596663+00 | diagnosis | config_change | high       |              |      | diagnosed | 1a94b650f18ad0a4 | d35ca2c38a231cbd | 0.000999
+  9 | 2026-10-30 12:26:50.604625+00 | decision  | config_change | high       | abort_canary |    1 | dry_run   | 1a94b650f18ad0a4 | d35ca2c38a231cbd |         
+ 10 | 2026-10-30 12:26:50.60773+00  | action    | config_change | high       | abort_canary |    1 | dry_run   | 1a94b650f18ad0a4 | d35ca2c38a231cbd |         
+(3 rows)
+

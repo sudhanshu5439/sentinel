@@ -263,6 +263,21 @@ diagnosis → 7f Slack + deploy.
      the correlator (not-running changes ×0.2, explicit "no change is still running" note) and
      the policy (only running changes are undone).
   3. Same trap rebuilt on purpose after the fix → `dependency`/medium → notify only. Correct.
+- **8c/8d** (`b6d5b21`): executors ([evidence](evidence/2026-10-30-8d-executors/README.md)).
+  - Abort: merge-patch on `rollouts/<name>/status` (`abort: true`), as `kubectl argo rollouts
+    abort` does, so the permission it needs cannot change spec, image or replicas.
+  - Revert: a PR in sentinel-gitops built from the parent commit's blobs (Git Data API), on
+    today's main. Refused when it leaves the env overlay, adds/deletes files, or a later commit
+    touched the same files. Tier 1 merges; tier 2 waits: **the human merge is the approval**
+    (GitHub records who), closing it rejects; both audited and posted to Slack. Decided instead
+    of a Slack Approve button: the change has to go through Git anyway, and a button would be a
+    second, weaker path to the same merge (Slack interactivity also needs a public endpoint the
+    laptop does not have).
+  - Dry run = the full plan, no writes. Checked against the real gitops history (an
+    already-undone commit and a platform commit refused) and in-cluster on a bad release
+    (*would PATCH rollouts/order-api/status*, 13 s before Argo's own analysis aborted it).
+  - Live in staging is gitops PR #19 (one write permission, prod outside the blast radius),
+    left for Sudhanshu to merge.
 
 ## Next
 
@@ -276,12 +291,12 @@ diagnosis → 7f Slack + deploy.
 - [x] Pack: traceback frames out of the log query (8a)
 - [x] Baselines "n/a": no data an hour earlier (laptop off); window-start fallback (8a)
 - [x] 8b: policy-chosen actions, guards, append-only audit DB, dry-run live runs
-- [ ] **8c/8d** ← next: executors. Abort a canary through the Rollouts status subresource (a
-      new Role with `patch rollouts/status` only); revert = a PR in sentinel-gitops computed
-      from the cited commit, refused if a later commit touched the same files or if it touches
-      anything outside that environment's overlay. Tier 1 merges it, tier 2 waits for a human
-      to merge it (the merge *is* the approval, recorded by GitHub). Needs a fine-grained
-      GitHub token scoped to sentinel-gitops only (Sudhanshu creates it).
+- [x] 8c/8d executors, dry-run verified (real repo + in-cluster)
+- [ ] **Sudhanshu: merge sentinel-gitops PR #19** (actions live in staging only), then a live
+      run: bad release → the assistant aborts the canary before Argo's analysis does
+- [ ] **Sudhanshu: fine-grained GitHub token** for sentinel-gitops only (Contents RW, Pull
+      requests RW, Issues RW), added to `.env` as `GITHUB_TOKEN`, then `make aiops-secrets`;
+      then a live revert PR run
 - [ ] 8e: after an action, watch the SLO for N minutes; not recovered → escalate. Postmortem
       draft as a GitHub issue. Grafana panel on the audit table.
 - [ ] Incidents survive a restart (rebuild open ones from the audit log): today a restart
@@ -323,3 +338,4 @@ diagnosis → 7f Slack + deploy.
 | 29 Oct 2026 | 7e LLM diagnosis (Haiku, cited + validated, retry → escalate, budget, kill switch); live bad release + control run saved as evidence | 7f Slack + deploy |
 | 30 Oct 2026 | 7f: Slack app via API, notifier, signed image via CI, aiops namespace + read-only RBAC + Alertmanager route; 3 live runs found 2 bugs (notifier never wired, unlabelled error logs missed), both fixed; final run diagnosed the DB failure correctly | Step 8 guarded actions |
 | 30 Oct 2026 | 8a traceback/baseline fixes; 8b action policy + guards + append-only audit DB (PR #18) in dry-run; 3 live runs: canary abort proposed correctly, a stale aborted canary blamed (tier 2, nothing done) → liveness facts fixed it, rerun correct; citation enum in the schema | 8c/8d executors (needs a GitHub token) |
+| 30 Oct 2026 | 8c/8d executors (abort via status subresource, revert PRs where the merge is the approval); dry-run checked against the real gitops history and in-cluster; PR #19 (live in staging) opened | Sudhanshu merges #19; GitHub token; live runs; 8e |
