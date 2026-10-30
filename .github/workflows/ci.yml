@@ -26,7 +26,7 @@ jobs:
       apps: ${{ steps.diff.outputs.apps }}
       assistant: ${{ steps.diff.outputs.assistant }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: diff
@@ -59,10 +59,10 @@ jobs:
     name: Secrets scan (Gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # scan the full history, not just the last commit
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -75,7 +75,7 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Semgrep scan (fail on ERROR-severity findings)
         run: |
           semgrep scan --config p/default --config p/python --config p/golang \
@@ -114,8 +114,8 @@ jobs:
       run:
         working-directory: ${{ matrix.dir }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - run: uv sync --frozen
@@ -130,8 +130,8 @@ jobs:
       run:
         working-directory: apps/risk-engine
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: apps/risk-engine/go.mod
           cache: false # no third-party modules to cache
@@ -143,7 +143,7 @@ jobs:
     name: Validate Kubernetes manifests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Install kustomize + kubeconform
         run: |
           curl -fsSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz | tar xz
@@ -215,7 +215,7 @@ jobs:
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         if: steps.token.outputs.ok == 'true'
         with:
           repository: ${{ env.GITOPS_REPO }}
@@ -264,14 +264,14 @@ jobs:
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         if: steps.token.outputs.ok == 'true'
         with:
           repository: ${{ env.GITOPS_REPO }}
           token: ${{ secrets.GITOPS_TOKEN }}
           path: gitops
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         if: steps.token.outputs.ok == 'true'
         with:
           registry: ghcr.io
