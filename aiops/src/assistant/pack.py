@@ -160,6 +160,12 @@ def _metric_importance(e: Evidence) -> float:
     return abs(now_f - base_f) / max(abs(base_f), 1e-3)
 
 
+def _startup_noise(title: str, text: str) -> bool:
+    """A startup probe failing is how a container normally looks while it starts: on its own it
+    says nothing about the incident (seen in the 7e live run, where the model over-read it)."""
+    return title.startswith("Unhealthy") and "Startup probe failed" in text
+
+
 def _grouped(evidence: list[Evidence], kind: EvidenceKind, key_text) -> list[_Draft]:
     groups: dict[tuple[str, str], list[Evidence]] = defaultdict(list)
     for e in evidence:
@@ -180,6 +186,11 @@ def _grouped(evidence: list[Evidence], kind: EvidenceKind, key_text) -> list[_Dr
             more = f" (+{len(objects) - 3} more)" if len(objects) > 3 else ""
             title = f"{title} on {', '.join(objects[:3])}{more}"
         tier = 3 if kind is EvidenceKind.EVENT else 4
+        if kind is EvidenceKind.EVENT and _startup_noise(title, example):
+            # Ranked after real events and labelled, rather than dropped: if the container
+            # never finishes starting, these lines are the evidence.
+            tier = 3.5
+            example = clean("(during container start-up; usually expected) " + example)
         drafts.append(
             _Draft(
                 rank=(tier, -count),

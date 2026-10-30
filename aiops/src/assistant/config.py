@@ -37,6 +37,10 @@ class Settings:
     llm_budget_usd: float = 0.02
     # Slack incoming webhook (a credential: from a Secret, never logged). Unset = no Slack.
     slack_webhook_url: str | None = None
+    # Break-glass kill switch, re-read before every diagnosis: a file containing "false" stops
+    # LLM calls immediately, no restart. In-cluster it is an optional ConfigMap that is
+    # deliberately not in Git, so Argo CD self-heal cannot undo it (`make aiops-off`).
+    kill_switch_file: str = "/etc/assistant/switch/LLM_ENABLED"
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -62,4 +66,12 @@ class Settings:
             llm_max_tokens=min(max(int(os.getenv("LLM_MAX_TOKENS", "2000")), 256), 8000),
             llm_budget_usd=min(float(os.getenv("LLM_BUDGET_USD", "0.02")), 1.0),
             slack_webhook_url=os.getenv("SLACK_WEBHOOK_URL") or None,
+            kill_switch_file=os.getenv("KILL_SWITCH_FILE", "/etc/assistant/switch/LLM_ENABLED"),
         )
+
+    def kill_switch_engaged(self) -> bool:
+        try:
+            with open(self.kill_switch_file) as f:
+                return f.read().strip().lower() == "false"
+        except OSError:  # no file = switch not set
+            return False

@@ -20,7 +20,7 @@ from fastapi import FastAPI, HTTPException
 from .collectors import Collector, build_collectors, collect_all
 from .config import Settings
 from .correlator import correlate, incident_start
-from .diagnosis import diagnose
+from .diagnosis import DiagnosisResult, DiagnosisStatus, diagnose
 from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
 from .llm import LLM, AnthropicLLM
@@ -55,7 +55,9 @@ def setup_logging(service: str, version: str) -> None:
     handler.setFormatter(JsonFormatter(service, version))
     logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"), handlers=[handler], force=True)
     # httpx logs every request at INFO: one line per Prometheus query per incident is noise.
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    # The Anthropic SDK uses httpx2, which logs the same way.
+    for name in ("httpx", "httpx2"):
+        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 async def investigate(
@@ -92,9 +94,16 @@ async def investigate(
         incident.pack.dropped or "none",
     )
     alerts = [(a.alertname, a.severity, a.summary) for a in incident.alerts.values()]
-    incident.diagnosis = await diagnose(
-        llm, alerts, incident.pack, settings.llm_budget_usd, settings.llm_max_tokens
-    )
+    if settings.kill_switch_engaged():
+        incident.diagnosis = DiagnosisResult(
+            status=DiagnosisStatus.SKIPPED,
+            errors=["LLM disabled by the kill switch"],
+            finished_at=datetime.now(UTC),
+        )
+    else:
+        incident.diagnosis = await diagnose(
+            llm, alerts, incident.pack, settings.llm_budget_usd, settings.llm_max_tokens
+        )
     d = incident.diagnosis
     log.info(
         "incident %s: diagnosis %s%s (%d attempts, %d+%d tokens, $%.4f)%s",
@@ -112,6 +121,12 @@ async def investigate(
         if incident.notify_error is None:
             incident.notified_at = datetime.now(UTC)
             log.info("incident %s: posted to Slack", incident.id)
+
+
+def _log_failure(task: asyncio.Task[None]) -> None:
+    """A background investigation that crashes must say so: nobody awaits these tasks."""
+    if not task.cancelled() and task.exception() is not None:
+        log.error("investigation failed", exc_info=task.exception())
 
 
 def create_app(
@@ -168,9 +183,12 @@ def create_app(
                 new_incidents.append(result.incident.id)
                 log.info("incident opened: %s", result.incident.id)
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
-                task = asyncio.create_task(investigate(result.incident, collectors, settings, llm))
+                task = asyncio.create_task(
+                    investigate(result.incident, collectors, settings, llm, notifier)
+                )
                 running.add(task)
                 task.add_done_callback(running.discard)
+                task.add_done_callback(_log_failure)
             else:
                 log.info(
                     "alert %s %s: %s",

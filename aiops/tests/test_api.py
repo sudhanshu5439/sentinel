@@ -79,6 +79,63 @@ def test_get_incident_by_id_and_404(clock):
     assert c.get("/incidents/nope").status_code == 404
 
 
+def test_kill_switch_file_stops_llm_calls_without_a_restart(tmp_path, clock):
+    import asyncio
+    from dataclasses import replace
+
+    from test_diagnosis import FakeLLM, answer
+
+    from assistant.diagnosis import DiagnosisStatus
+    from assistant.main import investigate
+
+    switch = tmp_path / "LLM_ENABLED"
+    settings = replace(SETTINGS, kill_switch_file=str(switch))
+    grouper = IncidentGrouper(window=timedelta(minutes=15), clock=clock)
+
+    llm = FakeLLM(answer())
+    switch.write_text("false\n")
+    incident = grouper.ingest(make_alert()).incident
+    asyncio.run(investigate(incident, [], settings, llm))
+    assert incident.diagnosis.status is DiagnosisStatus.SKIPPED
+    assert "kill switch" in incident.diagnosis.errors[0]
+    assert llm.prompts == []
+
+    assert not replace(SETTINGS, kill_switch_file=str(tmp_path / "absent")).kill_switch_engaged()
+
+
+def test_webhook_runs_the_whole_pipeline_through_to_the_notifier(clock):
+    # Regression: the notifier was built in create_app but never handed to the background
+    # investigation, so nothing reached Slack and nothing was logged (found in the 7f live run).
+    from test_diagnosis import FakeLLM, answer
+
+    class FakeNotifier:
+        def __init__(self) -> None:
+            self.sent: list[str] = []
+
+        async def send(self, incident) -> None:
+            self.sent.append(incident.id)
+
+        async def aclose(self) -> None:
+            pass
+
+    notifier = FakeNotifier()
+    grouper = IncidentGrouper(window=timedelta(minutes=15), clock=clock)
+    # With no collectors the pack holds one item (E1, "no change before the incident").
+    honest = answer(
+        category="unknown",
+        confidence="low",
+        probable_cause={"statement": "no change before the incident", "evidence": ["E1"]},
+        supporting=[],
+    )
+    app = create_app(SETTINGS, grouper, collectors=[], llm=FakeLLM(honest), notifier=notifier)
+    with TestClient(app) as c:
+        incident_id = c.post("/webhook/alertmanager", json=payload(make_alert())).json()[
+            "new_incidents"
+        ][0]
+    assert notifier.sent == [incident_id]
+    assert grouper.get(incident_id).notified_at is not None
+
+
 def test_malformed_payload_is_rejected(clock):
     c = client(clock)
     assert c.post("/webhook/alertmanager", json={"alerts": [{"status": "x"}]}).status_code == 422

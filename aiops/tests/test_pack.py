@@ -88,6 +88,23 @@ def test_events_are_grouped_by_reason_and_message():
     assert item.title == "BackOff on Pod/order-api-0, Pod/order-api-1, Pod/order-api-2 (+2 more)"
 
 
+def test_startup_probe_failures_are_labelled_and_ranked_after_real_events():
+    def event(title: str, detail: str) -> Evidence:
+        return Evidence(
+            kind=EvidenceKind.EVENT, source="kubernetes", title=title, detail=detail, at=T
+        )
+
+    pack = build_pack(
+        [
+            event("Unhealthy on Pod/a", 'Startup probe failed: Get "http://10.0.0.1:8000/healthz"'),
+            event("BackOff on Pod/b", "Back-off restarting failed container"),
+        ]
+    )
+    first, second = pack.items
+    assert first.title.startswith("BackOff")
+    assert second.text.startswith("(during container start-up; usually expected)")
+
+
 def test_ranking_gaps_then_changes_then_most_abnormal_metrics_then_events_then_logs():
     evidence = [
         log('{"msg": "boom"}'),

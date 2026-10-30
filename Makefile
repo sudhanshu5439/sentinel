@@ -126,6 +126,26 @@ aiops-secrets: ## Create/refresh the assistant's Secret (Anthropic key, Slack we
 	    --from-file="$$tmp/ANTHROPIC_API_KEY" --from-file="$$tmp/SLACK_WEBHOOK_URL" \
 	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/sentinel-assistant up to date"
 
+.PHONY: aiops-status
+aiops-status: ## Assistant health, recent pipeline log lines and the last incidents (in-cluster)
+	@kubectl -n argocd get application aiops -o custom-columns=APP:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status
+	@kubectl -n aiops get pods -l app=sentinel-assistant
+	@echo "--- recent log"
+	@kubectl -n aiops logs deploy/sentinel-assistant --tail=200 | grep '"msg"' | jq -r '.ts + "  " + .msg' | tail -8
+	@echo "--- incidents"
+	@kubectl -n aiops port-forward svc/sentinel-assistant 18000:8000 >/dev/null 2>&1 & pf=$$!; sleep 2; \
+	  curl -s localhost:18000/incidents | jq -r '.[:5][] | "\(.opened_at[:19])  \(.namespace)/\(.service)  \(.status)  \(.diagnosis.status // "pending") \(.diagnosis.diagnosis.category // "")  slack=\(if .notified_at then "sent" else (.notify_error // "-") end)"'; \
+	  kill $$pf
+
+.PHONY: aiops-off aiops-on
+# Break-glass switch: a ConfigMap kept out of Git on purpose, so Argo CD self-heal cannot revert
+# it. Mounted as a file the assistant re-reads before every diagnosis (kubelet syncs it in ~1 min).
+aiops-off: ## Kill switch: stop all LLM calls without a deploy (evidence + Slack continue)
+	kubectl -n aiops create configmap sentinel-assistant-switch --from-literal=LLM_ENABLED=false \
+	  --dry-run=client -o yaml | kubectl apply -f -
+aiops-on: ## Release the kill switch
+	kubectl -n aiops delete configmap sentinel-assistant-switch --ignore-not-found
+
 .PHONY: gitops-status
 gitops-status: ## Show Argo CD apps, policies and the pods they run
 	@kubectl -n argocd get applications -o custom-columns=APP:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
