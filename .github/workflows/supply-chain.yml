@@ -13,6 +13,10 @@ on:
       publish:
         type: boolean
         default: false
+      context:
+        description: Build context; defaults to apps/<service>
+        type: string
+        default: ""
     outputs:
       digest:
         description: Image digest (sha256:...) of the published image
@@ -34,6 +38,7 @@ jobs:
       digest: ${{ steps.build.outputs.digest }}
     env:
       IMAGE: ghcr.io/${{ github.repository_owner }}/sentinel-${{ inputs.service }}
+      CONTEXT: ${{ inputs.context || format('apps/{0}', inputs.service) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -60,7 +65,7 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          context: apps/${{ inputs.service }}
+          context: ${{ env.CONTEXT }}
           load: true
           tags: ${{ env.IMAGE }}:scan
           cache-from: type=gha,scope=${{ inputs.service }}
@@ -96,7 +101,7 @@ jobs:
         if: inputs.publish
         uses: docker/build-push-action@v6
         with:
-          context: apps/${{ inputs.service }}
+          context: ${{ env.CONTEXT }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

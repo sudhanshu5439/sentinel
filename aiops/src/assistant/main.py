@@ -25,6 +25,7 @@ from .evidence import Scope
 from .grouping import IncidentGrouper, Outcome
 from .llm import LLM, AnthropicLLM
 from .models import Incident, WebhookPayload
+from .notify import SlackNotifier
 from .pack import build_pack
 
 log = logging.getLogger("assistant")
@@ -58,9 +59,13 @@ def setup_logging(service: str, version: str) -> None:
 
 
 async def investigate(
-    incident: Incident, collectors: list[Collector], settings: Settings, llm: LLM | None = None
+    incident: Incident,
+    collectors: list[Collector],
+    settings: Settings,
+    llm: LLM | None = None,
+    notifier: SlackNotifier | None = None,
 ) -> None:
-    """Collect evidence, score changes, build the pack, then ask the LLM (once per incident)."""
+    """Collect evidence, score changes, build the pack, ask the LLM (once per incident), notify."""
     now = datetime.now(UTC)
     try:
         scope = Scope(
@@ -102,6 +107,11 @@ async def investigate(
         d.cost_usd,
         f": {'; '.join(d.errors)}" if d.errors else "",
     )
+    if notifier is not None:
+        incident.notify_error = await notifier.send(incident)
+        if incident.notify_error is None:
+            incident.notified_at = datetime.now(UTC)
+            log.info("incident %s: posted to Slack", incident.id)
 
 
 def create_app(
@@ -109,6 +119,7 @@ def create_app(
     grouper: IncidentGrouper | None = None,
     collectors: list[Collector] | None = None,
     llm: LLM | None = None,
+    notifier: SlackNotifier | None = None,
 ) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
@@ -123,6 +134,9 @@ def create_app(
     if llm is None and settings.llm_enabled:
         llm = AnthropicLLM(settings.llm_model, settings.llm_timeout_seconds)
         clients.append(llm)
+    if notifier is None and settings.slack_webhook_url:
+        notifier = SlackNotifier(settings.slack_webhook_url)
+        clients.append(notifier)
     # Strong references: the event loop only keeps weak ones, so an unreferenced task can vanish.
     running: set[asyncio.Task[None]] = set()
 

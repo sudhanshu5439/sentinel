@@ -77,3 +77,6 @@ class Incident(BaseModel):
     pack: EvidencePack | None = None
     # The LLM's cited diagnosis, or an explicit escalation / skip with the reasons (7e).
     diagnosis: DiagnosisResult | None = None
+    # Slack (7f): when the message went out, or why it did not.
+    notified_at: datetime | None = None
+    notify_error: str | None = None

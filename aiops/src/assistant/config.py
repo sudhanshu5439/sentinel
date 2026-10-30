@@ -35,6 +35,8 @@ class Settings:
     llm_max_tokens: int = 2000
     # Per incident, across the first attempt and the retry. Worst case is checked before sending.
     llm_budget_usd: float = 0.02
+    # Slack incoming webhook (a credential: from a Secret, never logged). Unset = no Slack.
+    slack_webhook_url: str | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -59,4 +61,5 @@ class Settings:
             llm_timeout_seconds=float(os.getenv("LLM_TIMEOUT_SECONDS", "30")),
             llm_max_tokens=min(max(int(os.getenv("LLM_MAX_TOKENS", "2000")), 256), 8000),
             llm_budget_usd=min(float(os.getenv("LLM_BUDGET_USD", "0.02")), 1.0),
+            slack_webhook_url=os.getenv("SLACK_WEBHOOK_URL") or None,
         )

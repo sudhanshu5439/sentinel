@@ -113,6 +113,19 @@ gitops-secrets: ## Create the DB password Secret in staging and prod (never stor
 	  fi; \
 	done
 
+.PHONY: aiops-secrets
+aiops-secrets: ## Create/refresh the assistant's Secret (Anthropic key, Slack webhook) from .env
+	@test -f .env || { echo "missing .env (see aiops/README or docs/PROGRESS.md)"; exit 1; }
+	@kubectl create namespace aiops --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+	@# Values are read from .env inside this shell and passed as files: they never appear in
+	@# the process list, the terminal or Git.
+	@set -a; . ./.env; set +a; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+	  printf '%s' "$$ANTHROPIC_API_KEY" > "$$tmp/ANTHROPIC_API_KEY"; \
+	  printf '%s' "$$SLACK_WEBHOOK_URL" > "$$tmp/SLACK_WEBHOOK_URL"; \
+	  kubectl -n aiops create secret generic sentinel-assistant \
+	    --from-file="$$tmp/ANTHROPIC_API_KEY" --from-file="$$tmp/SLACK_WEBHOOK_URL" \
+	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/sentinel-assistant up to date"
+
 .PHONY: gitops-status
 gitops-status: ## Show Argo CD apps, policies and the pods they run
 	@kubectl -n argocd get applications -o custom-columns=APP:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,REVISION:.status.sync.revision
