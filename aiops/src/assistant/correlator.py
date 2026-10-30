@@ -12,8 +12,10 @@ because the diagnosis (and a human) must be able to see *why* something is a sus
            version: 0.9; a rollout status change: 0.3 (a symptom of a release, not a separate
            cause); an Argo CD sync: 0.3 if it produced a revision or config in that namespace,
            0.05 if it changed nothing there (any commit anywhere in the repo creates a sync).
+           A revision or ConfigMap that is no longer running (scaled to 0) keeps 0.2 of that.
 
-If no workload or config changed before the incident, the correlator says so explicitly. That
+If no workload or config changed before the incident, or none that is still running, the
+correlator says so explicitly. That
 negative evidence is what lets the diagnosis answer "not the deploy" for a database outage, a
 network fault or a traffic surge.
 """
@@ -30,6 +32,7 @@ SYNC_EFFECT_WINDOW = (timedelta(minutes=-1), timedelta(minutes=10))
 KIND_WEIGHT = {"workload": 1.0, "config": 0.9, "rollout": 0.3}
 SYNC_WEIGHT_CHANGED, SYNC_WEIGHT_NOOP = 0.3, 0.05
 NEIGHBOUR = 0.5
+NOT_RUNNING = 0.2  # a revision scaled to 0 (aborted, replaced): history, not the current state
 
 
 def incident_start(incident: Incident) -> datetime:
@@ -94,23 +97,40 @@ def correlate(
             )
         else:
             kind = KIND_WEIGHT.get(str(change), 0.3)
+            if e.data.get("live") is False:
+                kind *= NOT_RUNNING
+                reasons.append("no longer running")
         s = 1.0 if _touches(e, service) else NEIGHBOUR
         if change != "sync":
             reasons.append(f"{service} itself" if s == 1.0 else f"another service, not {service}")
         e.data["suspect_score"] = round(t * s * kind, 2)
         e.data["reasons"] = reasons
 
-    if not any(r.at <= start + AFTER_START_GRACE for r in real):
+    before = [r for r in real if r.at <= start + AFTER_START_GRACE]
+    if not any(r.data.get("live") is not False for r in before):
+        if before:
+            # Found live (8b): a DB outage 13 min after an aborted canary was blamed on the
+            # canary's config. What is not running cannot be causing errors now.
+            title = "no change before the incident is still running"
+            detail = (
+                f"Every workload or config change in {namespace} between {window_start:%H:%M} "
+                f"and {start:%H:%M} UTC was rolled back or replaced before the incident (0 "
+                "replicas now): it cannot be causing the current errors; look at dependencies, "
+                "infrastructure and load."
+            )
+        else:
+            title = "no workload or config change before the incident"
+            detail = (
+                f"No new ReplicaSet or ConfigMap in {namespace} between "
+                f"{window_start:%H:%M} and {start:%H:%M} UTC: a deploy or config change is "
+                "unlikely to be the cause; look at dependencies, infrastructure and load."
+            )
         evidence.append(
             Evidence(
                 kind=EvidenceKind.CHANGE,
                 source="correlator",
-                title="no workload or config change before the incident",
-                detail=(
-                    f"No new ReplicaSet or ConfigMap in {namespace} between "
-                    f"{window_start:%H:%M} and {start:%H:%M} UTC: a deploy or config change is "
-                    "unlikely to be the cause; look at dependencies, infrastructure and load."
-                ),
+                title=title,
+                detail=detail,
                 at=start,
                 data={"change": "none", "summary": True, "suspect_score": 0.0, "reasons": []},
             )

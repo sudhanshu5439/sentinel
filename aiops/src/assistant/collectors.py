@@ -93,6 +93,15 @@ def _template_refs(rs: dict[str, Any]) -> tuple[list[str], list[str]]:
     return images, sorted(configs)
 
 
+def _running(rs: dict[str, Any]) -> bool | None:
+    """Is this revision serving now? An aborted canary or a replaced release is scaled to 0 but
+    kept for rollback. None when the API gave no status (unknown, not "no")."""
+    status = rs.get("status")
+    if status is None:
+        return None
+    return int(status.get("replicas") or 0) > 0
+
+
 def _short_image(image: str) -> str:
     """ghcr.io/x/sentinel-order-api@sha256:0c49...  ->  sentinel-order-api@sha256:0c494392"""
     name = image.rsplit("/", 1)[-1]
@@ -268,7 +277,7 @@ class KubernetesCollector:
             + self._syncs(apps, scope)
             + self._rollouts(rollouts, scope)
             + self._revisions(replicasets, events, rollouts, analysisruns, scope)
-            + self._configs(configmaps, scope)
+            + self._configs(configmaps, replicasets, scope)
         )
 
     def _revisions(
@@ -372,6 +381,9 @@ class KubernetesCollector:
                 what.append(f"image unchanged ({', '.join(images)})")
             if old_configs is not None and configs != old_configs:
                 what.append(f"config {', '.join(old_configs) or '-'} → {', '.join(configs) or '-'}")
+            live = _running(rs)
+            if live is not None:
+                what.append("running now" if live else "no longer running (0 replicas)")
             items.append(
                 Evidence(
                     kind=EvidenceKind.CHANGE,
@@ -384,28 +396,38 @@ class KubernetesCollector:
                         "owner": owner_ref.split("/", 1)[1],
                         "image_changed": old_images is not None and images != old_images,
                         "config_changed": old_configs is not None and configs != old_configs,
+                        "live": live,
                     },
                 )
             )
         return items
 
-    def _configs(self, body: dict[str, Any], scope: Scope) -> list[Evidence]:
+    def _configs(
+        self, body: dict[str, Any], replicasets: dict[str, Any], scope: Scope
+    ) -> list[Evidence]:
         """Kustomize-generated ConfigMaps carry a content hash in their name, so a ConfigMap
-        created in the window is a new configuration version."""
+        created in the window is a new configuration version. It is live while a running
+        ReplicaSet references it."""
+        in_use: set[str] = set()
+        for rs in replicasets.get("items", []):
+            if _running(rs):
+                in_use |= set(_template_refs(rs)[1])
         items = []
         for cm in body.get("items", []):
             meta = cm["metadata"]
             at = _ts(meta.get("creationTimestamp"))
             if at is None or at < scope.start or meta["name"] == "kube-root-ca.crt":
                 continue
+            live = meta["name"] in in_use
             items.append(
                 Evidence(
                     kind=EvidenceKind.CHANGE,
                     source="kubernetes",
                     title=f"new ConfigMap {meta['name']}",
-                    detail="configuration version created (contents not read)",
+                    detail="configuration version created (contents not read); "
+                    + ("in use by a running revision" if live else "no running pod uses it"),
                     at=at,
-                    data={"change": "config", "name": meta["name"]},
+                    data={"change": "config", "name": meta["name"], "live": live},
                 )
             )
         return items

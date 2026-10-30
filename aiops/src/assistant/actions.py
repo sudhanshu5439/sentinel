@@ -135,6 +135,24 @@ def decide(
     ours = [(eid, f) for eid, f in cited if _about_service(f, service)]
     if not ours:
         return _notify(*reasons, f"the cited change is not a change to {service}: nothing to undo")
+    # Only undo what is running now (8b live run: a revert was proposed for a canary aborted 12
+    # minutes earlier). A sync counts if it produced a revision or config that is still live.
+    live_revisions = {
+        i.facts.get("sync_revision")
+        for i in (pack.items if pack else [])
+        if i.facts.get("change") in ("workload", "config") and i.facts.get("live") is True
+    }
+    ours = [
+        (eid, f)
+        for eid, f in ours
+        if f.get("live") is True
+        or (f.get("change") == "sync" and f.get("revision") in live_revisions)
+        or f.get("change") == "rollout"
+    ]
+    if not ours:
+        return _notify(
+            *reasons, "the cited change is no longer running (or not known to be): nothing to undo"
+        )
 
     # A canary still in flight is the cheapest, fastest undo: no Git round-trip.
     for item in pack.items if pack else []:

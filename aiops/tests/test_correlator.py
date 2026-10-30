@@ -91,6 +91,33 @@ def test_no_note_when_a_real_change_exists():
     assert all(e.data.get("change") != "none" for e in evidence)
 
 
+def test_a_change_that_is_no_longer_running_is_history_not_a_suspect():
+    """8b live run: an aborted canary (0 replicas) 12 min before a DB outage was blamed."""
+    evidence = run(
+        [
+            change("workload", 12, "aborted canary", owner="order-api", live=False),
+            change("config", 12, "its config", name="order-api-faults-x", live=False),
+        ]
+    )
+    s = scores(evidence)
+    assert s["aborted canary"] < 0.1 and s["its config"] < 0.1  # 0.2 of e^(-12/15) ≈ 0.09
+    assert "no longer running" in evidence[0].data["reasons"]
+    note = evidence[-1]
+    assert note.title == "no change before the incident is still running"
+    assert "cannot be causing the current errors" in note.detail
+
+
+def test_a_running_change_still_counts_even_next_to_an_aborted_one():
+    evidence = run(
+        [
+            change("workload", 12, "aborted canary", owner="order-api", live=False),
+            change("workload", 4, "new release", owner="order-api", live=True),
+        ]
+    )
+    assert all(e.data.get("change") != "none" for e in evidence)
+    assert scores(evidence)["new release"] > 0.7
+
+
 def test_pack_orders_changes_by_suspect_score_and_shows_the_reasons():
     evidence = run(
         [

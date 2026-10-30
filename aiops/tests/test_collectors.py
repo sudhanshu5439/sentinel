@@ -204,7 +204,7 @@ def kube_handler(request: httpx.Request) -> httpx.Response:
     if path.endswith("/replicasets"):
         image = "ghcr.io/sudhanshu5439/sentinel-order-api@sha256:0c49439247f1d69c33d2"
 
-        def rs(name, created, faults_config):
+        def rs(name, created, faults_config, replicas):
             container = {"image": image, "envFrom": [{"configMapRef": {"name": faults_config}}]}
             return {
                 "metadata": {
@@ -213,13 +213,15 @@ def kube_handler(request: httpx.Request) -> httpx.Response:
                     "ownerReferences": [{"kind": "Rollout", "name": "order-api"}],
                 },
                 "spec": {"template": {"spec": {"containers": [container]}}},
+                "status": {"replicas": replicas},
             }
 
         # Same image, different (re-used, already existing) config: a config-only release.
+        # The rollout is Degraded (aborted): the new canary was scaled to 0, stable still runs.
         items = [
-            rs("order-api-new", recent, "order-api-faults-bad"),
-            rs("order-api-old", old, "order-api-faults-ok"),  # the rollout's stableRS ("old")
-            rs("order-api-reused", old, "order-api-faults-slow"),  # created long ago, re-deployed
+            rs("order-api-new", recent, "order-api-faults-5m8b668dd4", 0),
+            rs("order-api-old", old, "order-api-faults-ok", 4),  # the rollout's stableRS ("old")
+            rs("order-api-reused", old, "order-api-faults-slow", 0),  # long ago, re-deployed
         ]
         return httpx.Response(200, json={"items": items})
     if path.endswith("/analysisruns"):
@@ -272,11 +274,25 @@ def test_a_new_revision_is_diffed_against_the_previous_one():
         "owner": "order-api",
         "image_changed": False,
         "config_changed": True,
+        "live": False,
     }
     assert "image unchanged (sentinel-order-api@sha256:0c494392)" in revision.detail
-    assert "config order-api-faults-ok → order-api-faults-bad" in revision.detail
-    assert by_title["new ConfigMap order-api-faults-5m8b668dd4"].data["change"] == "config"
+    assert "config order-api-faults-ok → order-api-faults-5m8b668dd4" in revision.detail
+    config = by_title["new ConfigMap order-api-faults-5m8b668dd4"]
+    assert config.data["change"] == "config"
     assert not any("kube-root-ca" in t or "faults-old" in t for t in by_title)
+
+
+def test_changes_that_are_no_longer_running_say_so():
+    """8b live run: a DB outage 13 min after an aborted canary was blamed on that canary's
+    config, though its ReplicaSet had 0 replicas and the stable revision never changed."""
+    items = run(KubernetesCollector(http(kube_handler), "http://kube", "argocd").collect(SCOPE))
+    by_title = {i.title: i for i in items}
+    revision = by_title["new revision of Rollout/order-api"]
+    assert revision.data["live"] is False
+    assert revision.detail.endswith("no longer running (0 replicas)")
+    config = by_title["new ConfigMap order-api-faults-5m8b668dd4"]
+    assert config.data["live"] is False and "no running pod uses it" in config.detail
 
 
 def test_a_re_deployed_existing_revision_is_reported_from_its_rollout_event():

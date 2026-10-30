@@ -44,13 +44,14 @@ def change(title: str, **data) -> Evidence:
     )
 
 
-def workload(owner="order-api", **extra) -> Evidence:
+def workload(owner="order-api", live=True, **extra) -> Evidence:
     return change(
         f"new revision of Rollout/{owner}",
         change="workload",
         owner=owner,
         sync_app="sentinel-staging",
         sync_revision=REVISION,
+        live=live,
         **extra,
     )
 
@@ -164,6 +165,24 @@ def test_a_change_to_another_service_is_not_reverted():
     d = decide(diagnosed(), pack, STAGING, "order-api", PRODS)
     assert d.action is ActionKind.NOTIFY
     assert "not a change to order-api" in d.reasons[-1]
+
+
+@pytest.mark.parametrize("live", [False, None])
+def test_a_change_that_is_no_longer_running_is_not_reverted(live):
+    """8b live run: a DB outage 13 min after an aborted canary got a revert proposal for the
+    canary's commit. A revision scaled to 0, or one whose state is unknown, is not undone."""
+    d = decide(diagnosed(), build_pack([workload(live=live)]), STAGING, "order-api", PRODS)
+    assert d.action is ActionKind.NOTIFY
+    assert "no longer running" in d.reasons[-1]
+
+
+def test_a_cited_sync_is_reverted_only_if_what_it_produced_still_runs():
+    sync = change("Argo CD synced", change="sync", app="sentinel-staging", revision=REVISION)
+    for live, expected in ((True, ActionKind.REVERT_COMMIT), (False, ActionKind.NOTIFY)):
+        pack = build_pack([sync, workload(live=live)])
+        (sync_id,) = [i.id for i in pack.items if i.facts.get("change") == "sync"]
+        d = decide(diagnosed(cites=(sync_id,)), pack, STAGING, "order-api", PRODS)
+        assert d.action is expected
 
 
 def test_a_change_with_no_linked_commit_is_not_reverted():
