@@ -1,0 +1,5 @@
+2026-10-30T12:02:09+0000  incident opened: 20261030T120209Z-sentinel-staging-order-api
+2026-10-30T12:02:09+0000  incident 20261030T120209Z-sentinel-staging-order-api: 220 evidence items -> pack of 23 (~1002 tokens, dropped none)
+2026-10-30T12:02:19+0000  incident 20261030T120209Z-sentinel-staging-order-api: diagnosis diagnosed config_change/medium (1 attempts, 3443+1545 tokens, $0.0011)
+2026-10-30T12:02:19+0000  incident 20261030T120209Z-sentinel-staging-order-api: decision revert_commit tier 2 dry_run
+2026-10-30T12:02:20+0000  incident 20261030T120209Z-sentinel-staging-order-api: posted to Slack

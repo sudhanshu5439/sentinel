@@ -228,6 +228,42 @@ diagnosis → 7f Slack + deploy.
   server start slower than the script's `sleep 4`, and `curl -s` hid the refusal. Wait on
   `/healthz` and fail loudly (also what a readiness probe is for).
 
+### 8. Guarded actions, in progress
+
+- **8a** (`9e9b8c8`): the two 7f weak spots.
+  - Traceback frames are excluded in the LogQL query (`!~ "^\s|^Traceback …"`), so they stop
+    using up the 200-line limit; the unindented exception line is kept. Checked against the
+    real Loki: frames gone, the `UndefinedTable` line and the Postgres log stay.
+  - The "n/a" baselines were not a query bug: Prometheus had no data an hour before because
+    the laptop had been off (`count(up)` starts 06:40). With no 1h-earlier sample the value at
+    the window start is used and labelled as such.
+- **8b** (`d2fbce8`, `23ee4e1`, `a6fb60e`; gitops PR #18): actions chosen by policy code, in
+  dry-run, with an append-only audit log
+  ([evidence](evidence/2026-10-30-8b-guarded-actions-dry-run/README.md)).
+  - `actions.py`: `decide()` maps a validated diagnosis to one action from a closed catalogue
+    (notify · abort canary · revert the causing gitops commit · propose scale-out) with a tier
+    (0 notify, 1 act, 2 human approves; tier 3 is not in the catalogue). Targets come from
+    cluster facts the collectors put on the cited pack items, never rendered into the prompt,
+    so model text cannot name a commit or a rollout. Guards: actions kill switch, blast radius,
+    3/hour, 30-min cool-down per service, dry-run default (dry runs count, so they predict live).
+  - `audit.py` + gitops `platform/aiops/audit-db.yaml`: PostgreSQL 16 (16 MB shared buffers,
+    192Mi limit, pinned by digest, read-only root FS, NetworkPolicy). The assistant role has
+    INSERT/SELECT only; a trigger refuses UPDATE/DELETE/TRUNCATE even for the owner; Grafana
+    gets SELECT. Every incident writes `diagnosis` (pack, pack hash, prompt hash, output) and
+    `decision` rows. No audit, no action. All of it checked against the live DB.
+  - `make actions-off/on`, `make audit-log`; `aiops-secrets` generates the DB passwords once.
+- 8b live runs in staging (dry-run):
+  1. Bad config release, canary in flight → `config_change`/high → `abort_canary` tier 1,
+     dry_run. Argo Rollouts' analysis aborted the same canary 13 s later. Attempt 1 cited
+     `"[E1] description"` and cost a retry → output schema now limits citations to an enum of
+     the pack's IDs (verified against the API).
+  2. DB outage 13 min after that aborted canary → blamed on the canary's config at *medium*
+     confidence → `revert_commit` at **tier 2** (human approval), dry-run: nothing happened, but
+     it was wrong. The canary's ReplicaSet had 0 replicas. Fixed in the collector (`live`),
+     the correlator (not-running changes ×0.2, explicit "no change is still running" note) and
+     the policy (only running changes are undone).
+  3. Same trap rebuilt on purpose after the fix → `dependency`/medium → notify only. Correct.
+
 ## Next
 
 - [ ] Screenshot: Loki log line with trace_id → Tempo trace
@@ -237,12 +273,19 @@ diagnosis → 7f Slack + deploy.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
 - [x] **7. AIOps assistant (read-only)**: done (7a–7f), running in-cluster, posting to Slack
-- [ ] Pack: fold multi-line Python tracebacks into their final exception line (half the log
-      items in the 7f run 3 were frames)
-- [ ] Baselines read "n/a" in the 7f runs: check the 1h-offset queries against Prometheus history
-- [ ] **8. Guarded actions** ← next: action catalogue + tiers chosen by policy code from the
-      diagnosis category, approvals in Slack, revert PRs to sentinel-gitops, durable audit log
-      (evidence, prompt hash, output, decision), kill switch already in place
+- [x] Pack: traceback frames out of the log query (8a)
+- [x] Baselines "n/a": no data an hour earlier (laptop off); window-start fallback (8a)
+- [x] 8b: policy-chosen actions, guards, append-only audit DB, dry-run live runs
+- [ ] **8c/8d** ← next: executors. Abort a canary through the Rollouts status subresource (a
+      new Role with `patch rollouts/status` only); revert = a PR in sentinel-gitops computed
+      from the cited commit, refused if a later commit touched the same files or if it touches
+      anything outside that environment's overlay. Tier 1 merges it, tier 2 waits for a human
+      to merge it (the merge *is* the approval, recorded by GitHub). Needs a fine-grained
+      GitHub token scoped to sentinel-gitops only (Sudhanshu creates it).
+- [ ] 8e: after an action, watch the SLO for N minutes; not recovered → escalate. Postmortem
+      draft as a GitHub issue. Grafana panel on the audit table.
+- [ ] Incidents survive a restart (rebuild open ones from the audit log): today a restart
+      makes the next "resolved" ignored (seen live in 8b run 3)
 - [ ] Slack screenshot of the run-3 diagnosis for the README (Sudhanshu; the message holds no
       secrets, but check before committing)
 - [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`
@@ -279,3 +322,4 @@ diagnosis → 7f Slack + deploy.
 | 29 Oct 2026 | 7d correlator, verified on 5 live bad releases; zero-error rules, Prometheus volume, loopback ports, safe `make cluster` | 7e LLM diagnosis |
 | 29 Oct 2026 | 7e LLM diagnosis (Haiku, cited + validated, retry → escalate, budget, kill switch); live bad release + control run saved as evidence | 7f Slack + deploy |
 | 30 Oct 2026 | 7f: Slack app via API, notifier, signed image via CI, aiops namespace + read-only RBAC + Alertmanager route; 3 live runs found 2 bugs (notifier never wired, unlabelled error logs missed), both fixed; final run diagnosed the DB failure correctly | Step 8 guarded actions |
+| 30 Oct 2026 | 8a traceback/baseline fixes; 8b action policy + guards + append-only audit DB (PR #18) in dry-run; 3 live runs: canary abort proposed correctly, a stale aborted canary blamed (tier 2, nothing done) → liveness facts fixed it, rerun correct; citation enum in the schema | 8c/8d executors (needs a GitHub token) |

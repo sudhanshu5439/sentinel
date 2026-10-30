@@ -1,0 +1,2931 @@
+{
+  "id": "20261030T120209Z-sentinel-staging-order-api",
+  "namespace": "sentinel-staging",
+  "service": "order-api",
+  "status": "open",
+  "opened_at": "2026-10-30T12:02:09.116196Z",
+  "last_activity_at": "2026-10-30T12:02:09.116196Z",
+  "resolved_at": null,
+  "alerts": {
+    "e6d391aad483e3b3": {
+      "fingerprint": "e6d391aad483e3b3",
+      "alertname": "OrderApiAvailabilityBudgetBurnFast",
+      "severity": "critical",
+      "status": "firing",
+      "starts_at": "2026-10-30T12:01:11.400000Z",
+      "ends_at": null,
+      "summary": "order-api is burning its availability error budget fast in sentinel-staging",
+      "labels": {
+        "alertname": "OrderApiAvailabilityBudgetBurnFast",
+        "namespace": "sentinel-staging",
+        "prometheus": "monitoring/kps-prometheus",
+        "service": "order-api",
+        "severity": "critical",
+        "slo": "order-api-availability"
+      }
+    }
+  },
+  "notifications": 1,
+  "evidence": [
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "order-api 5xx ratio (5m)",
+      "detail": "now 0.9529, 1h earlier 0",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "order-api",
+        "now": "0.9529494240409992",
+        "baseline": "0",
+        "baseline_at": "1h earlier",
+        "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+      }
+    },
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "risk-engine 5xx ratio (5m)",
+      "detail": "now 0, 1h earlier 0",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "risk-engine",
+        "now": "0",
+        "baseline": "0",
+        "baseline_at": "1h earlier",
+        "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+      }
+    },
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "risk-engine p95 latency seconds (5m)",
+      "detail": "now 0.004757, 1h earlier 0.4325",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "risk-engine",
+        "now": "0.004757021433850702",
+        "baseline": "0.4325000000000001",
+        "baseline_at": "1h earlier",
+        "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+      }
+    },
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "order-api p95 latency seconds (5m)",
+      "detail": "now 0.09507, 1h earlier 1",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "order-api",
+        "now": "0.09506676047999725",
+        "baseline": "1",
+        "baseline_at": "1h earlier",
+        "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+      }
+    },
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "risk-engine requests per second (5m)",
+      "detail": "now 4.754, 1h earlier 0.3053",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "risk-engine",
+        "now": "4.754369282914797",
+        "baseline": "0.3052513762626706",
+        "baseline_at": "1h earlier",
+        "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+      }
+    },
+    {
+      "kind": "metric",
+      "source": "prometheus",
+      "title": "order-api requests per second (5m)",
+      "detail": "now 4.997, 1h earlier 0.3333",
+      "at": "2026-10-30T12:02:09.116881Z",
+      "data": {
+        "app": "order-api",
+        "now": "4.996500190859395",
+        "baseline": "0.33333687908152093",
+        "baseline_at": "1h earlier",
+        "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:08.444670Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:08.245082Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:08.043917Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:07.845145Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:07.644552Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:07.443248Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:07.242771Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:07.044225Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:06.843842Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:06.643229Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:06.446868Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:06.243711Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:06.044645Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:05.842643Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:05.640714Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:05.441815Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:05.241595Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:05.040666Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:04.840437Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:04.640133Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:04.439669Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:04.241091Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:04.041455Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:03.839819Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:03.640210Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:03.439326Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:03.249387Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:03.039499Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:02.841444Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:02.638080Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:02.438781Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:02.039002Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:01.840569Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:01.640547Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:01.439924Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:01.238873Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:01.041009Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:00.842360Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:00.639291Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:00.438788Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:00.239648Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:02:00.037924Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:59.837816Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:59.637315Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:59.436862Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:59.240423Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:59.037059Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:58.836353Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:58.637084Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "loadgen unlabelled log",
+      "detail": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"\n",
+      "at": "2026-10-30T12:01:58.436767Z",
+      "data": {
+        "app": "loadgen",
+        "pod": "loadgen-f4cb8f9b6-8kbdh"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:08.247635Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:07.046426Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:06.847090Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:05.642650Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:04.641464Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:04.043248Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:01.843567Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:01.044399Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:00.642825Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:58.838295Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:08.446872Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:07.445750Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:07.244884Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:06.645002Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:06.448783Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:05.042571Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:04.842255Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:04.441363Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:04.243119Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:02.639538Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:02.040471Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:01.442334Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:01.241111Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:00.844734Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:59.840055Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:59.438283Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:58.438187Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:08.046445Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:06.047346Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:05.443812Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:05.243787Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:03.251705Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:00.440411Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:59.639425Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:59.242506Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:59.038953Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:07.848904Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:07.646662Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:06.245421Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:05.844080Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:03.842016Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:03.642255Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:03.441289Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:03.041541Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:02.844887Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:02.440987Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:01.643564Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:00.243140Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:02:00.039460Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "ERROR:    Exception in ASGI application\n",
+      "at": "2026-10-30T12:01:58.639245Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:08.247843Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:07.046623Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:06.847362Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:05.642897Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:04.641697Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:04.043451Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:01.843836Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:01.044624Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:00.643062Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:58.838469Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-7z7gl"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:08.447095Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:07.446004Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:07.245086Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:06.645275Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:06.449038Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:05.042773Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:04.842497Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:04.441540Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:04.243282Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:02.639787Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:02.040635Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:01.442505Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:01.241423Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:00.845058Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:59.840243Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:59.438483Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:58.438362Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-994tx"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:08.046652Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:06.047626Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:05.444015Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:05.244041Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:03.251882Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:00.440624Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:59.639624Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:59.242672Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:59.039139Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-slbxn"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:07.849245Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:07.646922Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:06.245683Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:05.844312Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:03.842176Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:03.642483Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:03.441476Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:03.041824Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:02.845151Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:02.441212Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:01.643764Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:00.243331Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:02:00.039773Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "order-api unlabelled log",
+      "detail": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist\n",
+      "at": "2026-10-30T12:01:58.639487Z",
+      "data": {
+        "app": "order-api",
+        "pod": "order-api-fb66ff594-z9m7l"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:08.440 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:08.440706Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:08.240 UTC [60599] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:08.241213Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:08.040 UTC [62277] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:08.040392Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:07.840 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:07.840810Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:07.639 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:07.640073Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:07.439 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:07.439352Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:07.239 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:07.239453Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:07.039 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:07.039521Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:06.839 UTC [60599] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:06.840559Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:06.639 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:06.639446Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:06.442 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:06.443105Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:06.239 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:06.239589Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:06.040 UTC [62277] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:06.040676Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:05.839 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:05.839210Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:05.637 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:05.637288Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:05.438 UTC [63974] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:05.438174Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:05.237 UTC [62277] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:05.237973Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:05.037 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:05.037518Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:04.837 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:04.837587Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:04.636 UTC [60599] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:04.636735Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:04.436 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:04.436536Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:04.236 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:04.237351Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:04.037 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:04.037548Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:03.836 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:03.836246Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:03.636 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:03.637038Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:03.435 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:03.435747Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:03.244 UTC [63974] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:03.245346Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:03.035 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:03.035818Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:02.837 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:02.837793Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:02.634 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:02.635149Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:02.434 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:02.434917Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:02.035 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:02.035779Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:01.835 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:01.836181Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:01.635 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:01.636039Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:01.435 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:01.436207Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:01.234 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:01.235184Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:01.036 UTC [60599] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:01.036652Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:00.836 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:00.836539Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:00.634 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:00.634756Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:00.434 UTC [63974] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:00.435225Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:00.235 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:00.236244Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:02:00.033 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:02:00.034004Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:59.833 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:59.834278Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:59.633 UTC [62277] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:59.634101Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:59.433 UTC [60615] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:59.433716Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:59.236 UTC [63974] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:59.236316Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:59.033 UTC [62277] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:59.033587Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:58.832 UTC [60600] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:58.833050Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:58.633 UTC [63428] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:58.633664Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "log",
+      "source": "loki",
+      "title": "postgres unlabelled log",
+      "detail": "2026-10-30 12:01:58.433 UTC [60616] ERROR:  relation \"orders\" does not exist at character 13\n",
+      "at": "2026-10-30T12:01:58.433755Z",
+      "data": {
+        "app": "postgres",
+        "pod": "postgres-0"
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "MetricFailed on AnalysisRun/order-api-597f44bc87-28",
+      "detail": "Metric 'error-rate' Completed. Result: Failed",
+      "at": "2026-10-30T11:50:08Z",
+      "data": {
+        "count": 1
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "AnalysisRunFailed on AnalysisRun/order-api-597f44bc87-28",
+      "detail": "Analysis Completed. Result: Failed",
+      "at": "2026-10-30T11:50:08Z",
+      "data": {
+        "count": 1
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "Unhealthy on Pod/order-api-597f44bc87-zljcv",
+      "detail": "Startup probe failed: Get \"http://10.244.1.38:8000/healthz\": dial tcp 10.244.1.38:8000: connect: connection refused",
+      "at": "2026-10-30T11:49:05Z",
+      "data": {
+        "count": 2
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "Unhealthy on Pod/order-api-fb66ff594-z9m7l",
+      "detail": "Startup probe failed: Get \"http://10.244.1.39:8000/healthz\": dial tcp 10.244.1.39:8000: connect: connection refused",
+      "at": "2026-10-30T11:50:16Z",
+      "data": {
+        "count": 3
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "AnalysisRunFailed on Rollout/order-api",
+      "detail": "Background Analysis Run 'order-api-597f44bc87-28' Status New: 'Failed' Previous: 'Running'",
+      "at": "2026-10-30T11:50:08Z",
+      "data": {
+        "count": 1
+      }
+    },
+    {
+      "kind": "event",
+      "source": "kubernetes",
+      "title": "RolloutAborted on Rollout/order-api",
+      "detail": "Rollout aborted update to revision 28: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+      "at": "2026-10-30T11:50:08Z",
+      "data": {
+        "count": 1
+      }
+    },
+    {
+      "kind": "change",
+      "source": "argocd",
+      "title": "Argo CD synced sentinel-staging to 370404a",
+      "detail": "source path apps/overlays/staging",
+      "at": "2026-10-30T11:36:25Z",
+      "data": {
+        "change": "sync",
+        "app": "sentinel-staging",
+        "revision": "370404aa286607d1887700b21cb4e4d1ae1bdb3f",
+        "suspect_score": 0.01,
+        "reasons": [
+          "25 min before the incident",
+          "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "argocd",
+      "title": "Argo CD synced sentinel-staging to b4a2d62",
+      "detail": "source path apps/overlays/staging",
+      "at": "2026-10-30T11:48:01Z",
+      "data": {
+        "change": "sync",
+        "app": "sentinel-staging",
+        "revision": "b4a2d62688bad73d7e285f2416388ebb4c201138",
+        "suspect_score": 0.02,
+        "reasons": [
+          "13 min before the incident",
+          "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "argocd",
+      "title": "Argo CD synced sentinel-staging to 4084022",
+      "detail": "source path apps/overlays/staging",
+      "at": "2026-10-30T11:48:53Z",
+      "data": {
+        "change": "sync",
+        "app": "sentinel-staging",
+        "revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+        "suspect_score": 0.13,
+        "reasons": [
+          "12 min before the incident",
+          "produced: new revision of Rollout/order-api; new ConfigMap order-api-faults-96ffc8d22c"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "argocd",
+      "title": "Argo CD synced sentinel-staging to af5b776",
+      "detail": "source path apps/overlays/staging",
+      "at": "2026-10-30T11:50:40Z",
+      "data": {
+        "change": "sync",
+        "app": "sentinel-staging",
+        "revision": "af5b776e0beaed9ad6955e67948cdee0d7db335a",
+        "suspect_score": 0.02,
+        "reasons": [
+          "11 min before the incident",
+          "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "argocd",
+      "title": "Argo CD synced sentinel-staging to 974995c",
+      "detail": "source path apps/overlays/staging",
+      "at": "2026-10-30T11:57:31Z",
+      "data": {
+        "change": "sync",
+        "app": "sentinel-staging",
+        "revision": "974995c492919bbc2fca3431b07e4902dc65f7f2",
+        "suspect_score": 0.04,
+        "reasons": [
+          "4 min before the incident",
+          "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "rollouts",
+      "title": "rollout order-api conditions changed",
+      "detail": "Available=True (AvailableReason); Completed=True (RolloutCompleted); Paused=False (RolloutPaused); Healthy=True (RolloutHealthy); Progressing=True (NewReplicaSetAvailable)",
+      "at": "2026-10-30T11:50:40Z",
+      "data": {
+        "change": "rollout",
+        "rollout": "order-api",
+        "suspect_score": 0.15,
+        "reasons": [
+          "11 min before the incident",
+          "order-api itself"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "kubernetes",
+      "title": "new revision of Rollout/order-api",
+      "detail": "ReplicaSet order-api-597f44bc87; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-96ffc8d22c",
+      "at": "2026-10-30T11:48:53Z",
+      "data": {
+        "change": "workload",
+        "owner": "order-api",
+        "image_changed": false,
+        "config_changed": true,
+        "sync_app": "sentinel-staging",
+        "sync_revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+        "suspect_score": 0.44,
+        "reasons": [
+          "12 min before the incident",
+          "order-api itself"
+        ]
+      }
+    },
+    {
+      "kind": "change",
+      "source": "kubernetes",
+      "title": "new ConfigMap order-api-faults-96ffc8d22c",
+      "detail": "configuration version created (contents not read)",
+      "at": "2026-10-30T11:48:52Z",
+      "data": {
+        "change": "config",
+        "name": "order-api-faults-96ffc8d22c",
+        "sync_app": "sentinel-staging",
+        "sync_revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+        "suspect_score": 0.4,
+        "reasons": [
+          "12 min before the incident",
+          "order-api itself"
+        ]
+      }
+    }
+  ],
+  "evidence_collected_at": "2026-10-30T12:02:09.263299Z",
+  "pack": {
+    "items": [
+      {
+        "id": "E1",
+        "kind": "change",
+        "source": "kubernetes",
+        "title": "new revision of Rollout/order-api",
+        "text": "suspect 0.44 (12 min before the incident; order-api itself). ReplicaSet order-api-597f44bc87; image unchanged (sentinel-order-api@sha256:0c494392); config order-api-faults-c9gc88h72k → order-api-faults-96ffc8d22c",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:48:53Z",
+        "facts": {
+          "change": "workload",
+          "owner": "order-api",
+          "image_changed": false,
+          "config_changed": true,
+          "sync_app": "sentinel-staging",
+          "sync_revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+          "suspect_score": 0.44
+        }
+      },
+      {
+        "id": "E2",
+        "kind": "change",
+        "source": "kubernetes",
+        "title": "new ConfigMap order-api-faults-96ffc8d22c",
+        "text": "suspect 0.40 (12 min before the incident; order-api itself). configuration version created (contents not read)",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:48:52Z",
+        "facts": {
+          "change": "config",
+          "name": "order-api-faults-96ffc8d22c",
+          "sync_app": "sentinel-staging",
+          "sync_revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+          "suspect_score": 0.4
+        }
+      },
+      {
+        "id": "E3",
+        "kind": "change",
+        "source": "rollouts",
+        "title": "rollout order-api conditions changed",
+        "text": "suspect 0.15 (11 min before the incident; order-api itself). Available=True (AvailableReason); Completed=True (RolloutCompleted); Paused=False (RolloutPaused); Healthy=True (RolloutHealthy); Progressing=True (NewReplicaSetAvailable)",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:50:40Z",
+        "facts": {
+          "change": "rollout",
+          "rollout": "order-api",
+          "suspect_score": 0.15
+        }
+      },
+      {
+        "id": "E4",
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 4084022",
+        "text": "suspect 0.13 (12 min before the incident; produced: new revision of Rollout/order-api; new ConfigMap order-api-faults-96ffc8d22c). source path apps/overlays/staging",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:48:53Z",
+        "facts": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f",
+          "suspect_score": 0.13
+        }
+      },
+      {
+        "id": "E5",
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 974995c",
+        "text": "suspect 0.04 (4 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:57:31Z",
+        "facts": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "974995c492919bbc2fca3431b07e4902dc65f7f2",
+          "suspect_score": 0.04
+        }
+      },
+      {
+        "id": "E6",
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to af5b776",
+        "text": "suspect 0.02 (11 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:50:40Z",
+        "facts": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "af5b776e0beaed9ad6955e67948cdee0d7db335a",
+          "suspect_score": 0.02
+        }
+      },
+      {
+        "id": "E7",
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to b4a2d62",
+        "text": "suspect 0.02 (13 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:48:01Z",
+        "facts": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "b4a2d62688bad73d7e285f2416388ebb4c201138",
+          "suspect_score": 0.02
+        }
+      },
+      {
+        "id": "E8",
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 370404a",
+        "text": "suspect 0.01 (25 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T11:36:25Z",
+        "facts": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "370404aa286607d1887700b21cb4e4d1ae1bdb3f",
+          "suspect_score": 0.01
+        }
+      },
+      {
+        "id": "E9",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api 5xx ratio (5m)",
+        "text": "now 0.9529, 1h earlier 0",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E10",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine requests per second (5m)",
+        "text": "now 4.754, 1h earlier 0.3053",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E11",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api requests per second (5m)",
+        "text": "now 4.997, 1h earlier 0.3333",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E12",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine p95 latency seconds (5m)",
+        "text": "now 0.004757, 1h earlier 0.4325",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E13",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api p95 latency seconds (5m)",
+        "text": "now 0.09507, 1h earlier 1",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E14",
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine 5xx ratio (5m)",
+        "text": "now 0, 1h earlier 0",
+        "count": 1,
+        "first_at": null,
+        "last_at": "2026-10-30T12:02:09.116881Z",
+        "facts": {}
+      },
+      {
+        "id": "E15",
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "MetricFailed on AnalysisRun/order-api-597f44bc87-28",
+        "text": "Metric 'error-rate' Completed. Result: Failed",
+        "count": 1,
+        "first_at": "2026-10-30T11:50:08Z",
+        "last_at": "2026-10-30T11:50:08Z",
+        "facts": {}
+      },
+      {
+        "id": "E16",
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on AnalysisRun/order-api-597f44bc87-28",
+        "text": "Analysis Completed. Result: Failed",
+        "count": 1,
+        "first_at": "2026-10-30T11:50:08Z",
+        "last_at": "2026-10-30T11:50:08Z",
+        "facts": {}
+      },
+      {
+        "id": "E17",
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "AnalysisRunFailed on Rollout/order-api",
+        "text": "Background Analysis Run 'order-api-597f44bc87-28' Status New: 'Failed' Previous: 'Running'",
+        "count": 1,
+        "first_at": "2026-10-30T11:50:08Z",
+        "last_at": "2026-10-30T11:50:08Z",
+        "facts": {}
+      },
+      {
+        "id": "E18",
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "RolloutAborted on Rollout/order-api",
+        "text": "Rollout aborted update to revision 28: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+        "count": 1,
+        "first_at": "2026-10-30T11:50:08Z",
+        "last_at": "2026-10-30T11:50:08Z",
+        "facts": {}
+      },
+      {
+        "id": "E19",
+        "kind": "event",
+        "source": "kubernetes",
+        "title": "Unhealthy on Pod/order-api-597f44bc87-zljcv, Pod/order-api-fb66ff594-z9m7l",
+        "text": "(during container start-up; usually expected) Startup probe failed: Get \"http://10.244.1.39:8000/healthz\": dial tcp 10.244.1.39:8000: connect: connection refused",
+        "count": 5,
+        "first_at": "2026-10-30T11:49:05Z",
+        "last_at": "2026-10-30T11:50:16Z",
+        "facts": {}
+      },
+      {
+        "id": "E20",
+        "kind": "log",
+        "source": "loki",
+        "title": "loadgen unlabelled log",
+        "text": "HTTP Request: POST http://order-api:8000/orders \"HTTP/1.1 500 Internal Server Error\"",
+        "count": 50,
+        "first_at": "2026-10-30T12:01:58.436767Z",
+        "last_at": "2026-10-30T12:02:08.444670Z",
+        "facts": {}
+      },
+      {
+        "id": "E21",
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api unlabelled log",
+        "text": "ERROR: Exception in ASGI application",
+        "count": 50,
+        "first_at": "2026-10-30T12:01:58.438187Z",
+        "last_at": "2026-10-30T12:02:08.446872Z",
+        "facts": {}
+      },
+      {
+        "id": "E22",
+        "kind": "log",
+        "source": "loki",
+        "title": "order-api unlabelled log",
+        "text": "psycopg.errors.UndefinedTable: relation \"orders\" does not exist",
+        "count": 50,
+        "first_at": "2026-10-30T12:01:58.438362Z",
+        "last_at": "2026-10-30T12:02:08.447095Z",
+        "facts": {}
+      },
+      {
+        "id": "E23",
+        "kind": "log",
+        "source": "loki",
+        "title": "postgres unlabelled log",
+        "text": "2026-10-30 12:01:58.433 UTC [60616] ERROR: relation \"orders\" does not exist at character 13",
+        "count": 50,
+        "first_at": "2026-10-30T12:01:58.433755Z",
+        "last_at": "2026-10-30T12:02:08.440706Z",
+        "facts": {}
+      }
+    ],
+    "token_budget": 6000,
+    "tokens_estimated": 1002,
+    "dropped": {},
+    "raw_items": 220
+  },
+  "diagnosis": {
+    "status": "diagnosed",
+    "model": "claude-haiku-5-5",
+    "diagnosis": {
+      "summary": "order-api 5xx ratio rose to 95% after a new rollout revision 28 with a new faults ConfigMap (same image). Analysis aborted the rollout, and logs show missing relation 'orders' in Postgres. Config link unverified.",
+      "category": "config_change",
+      "confidence": "medium",
+      "probable_cause": {
+        "statement": "The new order-api configuration version (revision 28 with ConfigMap order-api-faults-96ffc8d22c) is the most likely trigger. Errors are caused by the database lacking the 'orders' table, which the config may have changed behaviour around. The ConfigMap contents were not read, so this link is unconf…",
+        "evidence": [
+          "E1",
+          "E2",
+          "E22",
+          "E23",
+          "E9"
+        ]
+      },
+      "supporting": [
+        {
+          "statement": "A new rollout revision and ConfigMap were created about 12 minutes before the incident, with the image unchanged, so the change was configuration-only.",
+          "evidence": [
+            "E1",
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "statement": "The error-rate analysis failed and the rollout was aborted at 11:50:08, showing the new revision was unhealthy.",
+          "evidence": [
+            "E15",
+            "E16",
+            "E17",
+            "E18"
+          ]
+        },
+        {
+          "statement": "order-api logs and Postgres both report the 'orders' relation does not exist, matching the 500 errors seen by loadgen.",
+          "evidence": [
+            "E20",
+            "E21",
+            "E22",
+            "E23"
+          ]
+        },
+        {
+          "statement": "order-api p95 latency and 5xx ratio moved sharply against the one-hour baseline, while risk-engine stayed error-free.",
+          "evidence": [
+            "E9",
+            "E13",
+            "E14"
+          ]
+        },
+        {
+          "statement": "Request volume to order-api rose roughly fifteen-fold, which may amplify the failure but does not explain the missing table.",
+          "evidence": [
+            "E11",
+            "E10"
+          ]
+        },
+        {
+          "statement": "Startup probe failures during rollout are common and do not by themselves indicate the fault.",
+          "evidence": [
+            "E19"
+          ]
+        }
+      ],
+      "missing_evidence": [
+        "ConfigMap order-api-faults-96ffc8d22c contents were not read, so the specific fault or config change is unknown.",
+        "No database migration or schema history was provided to explain why the 'orders' table is missing.",
+        "Unclear whether the aborted revision 28 is still serving traffic or whether the errors continue after rollback.",
+        "No timeline linking the rollout abort at 11:50 to the first 5xx errors; metrics show only a before and now snapshot.",
+        "Postgres state and recent changes to the database were not provided."
+      ],
+      "injection_suspected": false
+    },
+    "attempts": 1,
+    "input_tokens": 3443,
+    "output_tokens": 1545,
+    "cost_usd": 0.001117,
+    "budget_usd": 0.02,
+    "errors": [],
+    "prompt_sha256": "37e4fe6aaf4ba6fc127069d056398e9d368c8d6ec0cd2af5782627d99af39ea7",
+    "request_ids": [
+      "req_011CgYPQh1DdzTE6AzEnxD3m"
+    ],
+    "finished_at": "2026-10-30T12:02:19.792840Z"
+  },
+  "notified_at": "2026-10-30T12:02:20.261624Z",
+  "notify_error": null,
+  "decision": {
+    "action": "revert_commit",
+    "tier": 2,
+    "target": {
+      "namespace": "sentinel-staging",
+      "app": "sentinel-staging",
+      "revision": "4084022ecfb9bfa2d6423ac13d5652399af8338f"
+    },
+    "reasons": [
+      "diagnosis config_change/medium",
+      "confidence medium: a human approves first",
+      "revert gitops commit 4084022 (Argo CD app sentinel-staging), cited as E1"
+    ],
+    "evidence": [
+      "E1"
+    ],
+    "status": "dry_run",
+    "blocked_by": null,
+    "decided_at": "2026-10-30T12:02:19.793334Z",
+    "approver": null,
+    "result": null
+  },
+  "audited": true
+}

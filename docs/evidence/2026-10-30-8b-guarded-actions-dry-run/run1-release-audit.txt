@@ -1,0 +1,6 @@
+ id |              at               |   event   |   category    | confidence |    action    | tier |  status   |    prompt_sha    |     pack_sha     | cost_usd 
+----+-------------------------------+-----------+---------------+------------+--------------+------+-----------+------------------+------------------+----------
+  2 | 2026-10-30 11:49:58.410054+00 | diagnosis | config_change | high       |              |      | diagnosed | 11332d588c6e1583 | bd1ab4615fd43f72 | 0.002194
+  3 | 2026-10-30 11:49:58.417482+00 | decision  | config_change | high       | abort_canary |    1 | dry_run   | 11332d588c6e1583 | bd1ab4615fd43f72 |         
+(2 rows)
+

@@ -1,0 +1,48 @@
+# audit-db security checks, 2026-10-30T11:47:15Z
+
+## 1. the assistant role: INSERT and SELECT only
+ id | event 
+----+-------
+  1 | test
+(1 row)
+
+INSERT 0 1
+ERROR:  permission denied for table audit_events
+ERROR:  permission denied for table audit_events
+ERROR:  permission denied for table audit_events
+ERROR:  permission denied for schema public
+LINE 2: CREATE TABLE sneaky (x int);
+                     ^
+ERROR:  must be owner of table audit_events
+command terminated with exit code 1
+
+## 2. even the owner (audit_admin) cannot change history: the trigger refuses
+ERROR:  audit_events is append-only: UPDATE refused
+CONTEXT:  PL/pgSQL function audit_events_append_only() line 3 at RAISE
+ERROR:  audit_events is append-only: DELETE refused
+CONTEXT:  PL/pgSQL function audit_events_append_only() line 3 at RAISE
+ERROR:  audit_events is append-only: TRUNCATE refused
+CONTEXT:  PL/pgSQL function audit_events_append_only() line 3 at RAISE
+command terminated with exit code 1
+
+## 3. Grafana role: SELECT only
+ rows 
+------
+    1
+(1 row)
+
+ERROR:  permission denied for table audit_events
+command terminated with exit code 1
+
+## 4. NetworkPolicy: other pods cannot reach the database
+### from sentinel-staging/postgres-0 (a pod in another namespace)
+audit-db.aiops.svc:5432 - no response
+exit 2
+### from the assistant pod (allowed): python socket connect
+connected 5432
+
+## 5. assistant RBAC unchanged: still read-only
+can-i patch rollouts.argoproj.io -n sentinel-staging: no
+can-i create pods -n sentinel-staging: no
+can-i get secrets -n aiops: no
+can-i list events -n sentinel-staging: yes

@@ -1,0 +1,6 @@
+ id |              at               |   event   |   category    | confidence |    action     | tier |  status   |    prompt_sha    |     pack_sha     | cost_usd 
+----+-------------------------------+-----------+---------------+------------+---------------+------+-----------+------------------+------------------+----------
+  4 | 2026-10-30 12:02:19.804903+00 | diagnosis | config_change | medium     |               |      | diagnosed | 37e4fe6aaf4ba6fc | 09fb3cbbb5f34b7e | 0.001117
+  5 | 2026-10-30 12:02:19.888859+00 | decision  | config_change | medium     | revert_commit |    2 | dry_run   | 37e4fe6aaf4ba6fc | 09fb3cbbb5f34b7e |         
+(2 rows)
+
