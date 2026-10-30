@@ -68,9 +68,11 @@ class FakeLLM:
     def __init__(self, *replies) -> None:
         self.replies = list(replies)
         self.prompts: list[str] = []
+        self.schemas: list[dict] = []
 
     async def complete(self, system, user, schema, max_tokens):
         self.prompts.append(user)
+        self.schemas.append(schema)
         reply = self.replies.pop(0)
         if isinstance(reply, Exception):
             raise reply
@@ -179,3 +181,19 @@ def test_output_is_cleaned_before_humans_see_it():
 def test_schema_is_strict():
     assert SCHEMA["additionalProperties"] is False
     assert set(SCHEMA["required"]) == set(SCHEMA["properties"])
+
+
+def test_each_request_constrains_citations_to_the_ids_in_its_pack():
+    """8b live run: "[E1] new Rollout revision..." was rejected and cost a retry. Constrained
+    decoding with an enum of the pack's IDs makes such a citation impossible to generate."""
+    from assistant.diagnosis import schema_for
+
+    p = pack()
+    llm = FakeLLM(answer())
+    asyncio.run(diagnose(llm, ALERTS, p, budget_usd=0.05, max_tokens=2000))
+    (sent,) = llm.schemas
+    assert sent == schema_for(p)
+    cause = sent["properties"]["probable_cause"]["properties"]["evidence"]["items"]
+    support = sent["properties"]["supporting"]["items"]["properties"]["evidence"]["items"]
+    assert cause["enum"] == support["enum"] == ["E1", "E2", "E3"]
+    assert "enum" not in SCHEMA["properties"]["probable_cause"]["properties"]["evidence"]["items"]

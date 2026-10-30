@@ -124,6 +124,24 @@ resource (CPU, memory, OOM, node), traffic (load change), unknown.
 Keep summary under 300 characters and each statement under 250."""
 
 
+def schema_for(pack: EvidencePack) -> dict:
+    """SCHEMA with every `evidence` array limited to this pack's IDs. Constrained decoding then
+    cannot produce a citation that does not exist. Found live (8b run): Haiku cited
+    "[E1] new Rollout revision..." (ID plus description); validate() rejected it and the retry
+    doubled the cost. validate() still checks: the schema is a second line, not the only one."""
+    ids = [i.id for i in pack.items]
+    claim = _claim_schema()
+    claim["properties"]["evidence"]["items"] = {"type": "string", "enum": ids}
+    return {
+        **SCHEMA,
+        "properties": {
+            **SCHEMA["properties"],
+            "probable_cause": claim,
+            "supporting": {"type": "array", "items": claim},
+        },
+    }
+
+
 class DiagnosisStatus(StrEnum):
     DIAGNOSED = "diagnosed"  # a validated, cited diagnosis
     ESCALATE = "escalate"  # unknown: invalid twice, LLM failure or budget; a human takes over
@@ -219,6 +237,7 @@ async def diagnose(
         )
 
     prompt = build_prompt(alerts, pack)
+    schema = schema_for(pack)
     result = DiagnosisResult(
         status=DiagnosisStatus.ESCALATE,
         model=llm.model,
@@ -237,7 +256,7 @@ async def diagnose(
             )
             break
         try:
-            reply = await llm.complete(SYSTEM_PROMPT, user, SCHEMA, max_tokens)
+            reply = await llm.complete(SYSTEM_PROMPT, user, schema, max_tokens)
         except LLMError as exc:
             result.errors.append(f"attempt {attempt}: LLM call failed: {exc}")
             break  # the SDK already retried transport errors; a second call would likely fail too
