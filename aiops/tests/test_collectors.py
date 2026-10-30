@@ -73,33 +73,37 @@ def test_prometheus_queries_only_the_incident_namespace():
     assert seen and all('namespace="sentinel-staging"' in q for q in seen)
 
 
-def test_loki_returns_warning_and_error_lines():
+def test_loki_returns_error_lines_with_and_without_a_level_label():
     def handler(request: httpx.Request) -> httpx.Response:
-        assert 'level=~"error|warn|warning|critical"' in request.url.params["query"]
-        line = '{"level": "error", "msg": "risk-engine unavailable"}'
+        query = request.url.params["query"]
+        # A line filter, not a level selector: unlabelled tracebacks must be included.
+        assert "level=" not in query and "|~" in query and "does not exist" in query
+        ts = str(int(END.timestamp() * 1e9))
         return httpx.Response(
             200,
             json={
                 "data": {
                     "result": [
                         {
-                            "stream": {
-                                "app": "order-api",
-                                "level": "error",
-                                "pod": "order-api-abc",
-                            },
-                            "values": [[str(int(END.timestamp() * 1e9)), line]],
-                        }
+                            "stream": {"app": "order-api", "level": "error", "pod": "p"},
+                            "values": [[ts, '{"level": "error", "msg": "risk-engine down"}']],
+                        },
+                        {
+                            "stream": {"app": "order-api", "pod": "p"},  # no level label
+                            "values": [
+                                [ts, 'UndefinedTableError: relation "orders" does not exist']
+                            ],
+                        },
                     ]
                 }
             },
         )
 
-    [item] = run(LokiCollector(http(handler), "http://loki").collect(SCOPE))
-    assert item.kind is EvidenceKind.LOG
-    assert item.title == "order-api error log"
-    assert "risk-engine unavailable" in item.detail
-    assert item.at == END
+    labelled, unlabelled = run(LokiCollector(http(handler), "http://loki").collect(SCOPE))
+    assert labelled.kind is EvidenceKind.LOG and labelled.title == "order-api error log"
+    assert "risk-engine down" in labelled.detail and labelled.at == END
+    assert unlabelled.title == "order-api unlabelled log"
+    assert "does not exist" in unlabelled.detail
 
 
 def kube_handler(request: httpx.Request) -> httpx.Response:

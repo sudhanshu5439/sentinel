@@ -57,6 +57,12 @@ STATE_QUERIES = {
 }
 BASELINE_OFFSET = timedelta(hours=1)
 LOG_LIMIT = 200
+# Matched on the line, not on a `level` label: tracebacks and driver exceptions are plain text
+# without a level, and in the 7f live run the one line naming the cause (`relation "orders"
+# does not exist`) was exactly such a line. Repeats are folded into one counted item by the pack.
+LOG_PATTERN = (
+    r"(?i)(error|exception|traceback|fatal|critical|panic|warn|refused|timeout|does not exist)"
+)
 METADATA_ONLY = {"Accept": "application/json;as=PartialObjectMetadataList;g=meta.k8s.io;v=v1"}
 # Argo Rollouts: "Rollout not completed, started update to revision 16 (58cb94cdf4)"
 _ROLLOUT_UPDATE = re.compile(r"started update to revision (\d+) \(([0-9a-z]+)\)")
@@ -176,7 +182,7 @@ class LokiCollector:
         r = await self._http.get(
             f"{self._url}/loki/api/v1/query_range",
             params={
-                "query": f'{{namespace="{scope.namespace}", level=~"error|warn|warning|critical"}}',
+                "query": f'{{namespace="{scope.namespace}"}} |~ `{LOG_PATTERN}`',
                 "start": int(scope.start.timestamp() * 1e9),
                 "end": int(scope.end.timestamp() * 1e9),
                 "limit": LOG_LIMIT,
@@ -192,7 +198,7 @@ class LokiCollector:
                     Evidence(
                         kind=EvidenceKind.LOG,
                         source=self.name,
-                        title=f"{labels.get('app', '?')} {labels.get('level', '?')} log",
+                        title=f"{labels.get('app', '?')} {labels.get('level') or 'unlabelled'} log",
                         detail=line,
                         at=datetime.fromtimestamp(int(ts_ns) / 1e9, scope.end.tzinfo),
                         data={"app": labels.get("app"), "pod": labels.get("pod")},

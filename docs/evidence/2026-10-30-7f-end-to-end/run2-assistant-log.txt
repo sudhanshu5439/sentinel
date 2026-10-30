@@ -1,0 +1,5 @@
+2026-10-30T07:24:01+0000  alert OrderApiAvailabilityBudgetBurnFast resolved: ignored
+2026-10-30T07:25:08+0000  incident opened: 20261030T072508Z-sentinel-staging-order-api
+2026-10-30T07:25:09+0000  incident 20261030T072508Z-sentinel-staging-order-api: 10 evidence items -> pack of 10 (~382 tokens, dropped none)
+2026-10-30T07:25:14+0000  incident 20261030T072508Z-sentinel-staging-order-api: diagnosis diagnosed unknown/low (1 attempts, 1986+886 tokens, $0.0006)
+2026-10-30T07:25:14+0000  incident 20261030T072508Z-sentinel-staging-order-api: posted to Slack

@@ -1,0 +1,353 @@
+[
+  {
+    "id": "20261030T072508Z-sentinel-staging-order-api",
+    "namespace": "sentinel-staging",
+    "service": "order-api",
+    "status": "open",
+    "opened_at": "2026-10-30T07:25:08.950192Z",
+    "last_activity_at": "2026-10-30T07:25:08.950192Z",
+    "resolved_at": null,
+    "alerts": {
+      "05e456ceddedbbe3": {
+        "fingerprint": "05e456ceddedbbe3",
+        "alertname": "OrderApiAvailabilityBudgetBurnSlow",
+        "severity": "warning",
+        "status": "firing",
+        "starts_at": "2026-10-30T07:24:11.400000Z",
+        "ends_at": null,
+        "summary": "order-api error budget is steadily burning in sentinel-staging",
+        "labels": {
+          "alertname": "OrderApiAvailabilityBudgetBurnSlow",
+          "namespace": "sentinel-staging",
+          "prometheus": "monitoring/kps-prometheus",
+          "service": "order-api",
+          "severity": "warning",
+          "slo": "order-api-availability"
+        }
+      }
+    },
+    "notifications": 1,
+    "evidence": [
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api 5xx ratio (5m)",
+        "detail": "now 0.1665, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "order-api",
+          "now": "0.16654954321855236",
+          "baseline": null,
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine 5xx ratio (5m)",
+        "detail": "now 0, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0",
+          "baseline": null,
+          "query": "(sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\",status=\"5xx\"}[5m])) or 0 * sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))) / sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine p95 latency seconds (5m)",
+        "detail": "now 0.004754, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "0.004753518518518517",
+          "baseline": null,
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api p95 latency seconds (5m)",
+        "detail": "now 0.095, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "order-api",
+          "now": "0.095",
+          "baseline": null,
+          "query": "histogram_quantile(0.95, sum by (app, le) (rate(http_request_duration_seconds_bucket{namespace=\"sentinel-staging\"}[5m])))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "risk-engine requests per second (5m)",
+        "detail": "now 4.74, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "risk-engine",
+          "now": "4.740350877192982",
+          "baseline": null,
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "metric",
+        "source": "prometheus",
+        "title": "order-api requests per second (5m)",
+        "detail": "now 4.993, 1h earlier n/a",
+        "at": "2026-10-30T07:25:08.951237Z",
+        "data": {
+          "app": "order-api",
+          "now": "4.99298245614035",
+          "baseline": null,
+          "query": "sum by (app) (rate(http_requests_total{namespace=\"sentinel-staging\"}[5m]))"
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 4461b95",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-30T06:58:55Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "4461b95cbde5fe6c65409936c695a2b0d6c21ef2",
+          "suspect_score": 0.01,
+          "reasons": [
+            "25 min before the incident",
+            "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to ab15701",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-30T07:02:35Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "ab15701549fe570da826604db9e21845f5d1674f",
+          "suspect_score": 0.01,
+          "reasons": [
+            "22 min before the incident",
+            "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "argocd",
+        "title": "Argo CD synced sentinel-staging to 11790c2",
+        "detail": "source path apps/overlays/staging",
+        "at": "2026-10-30T07:24:31Z",
+        "data": {
+          "change": "sync",
+          "app": "sentinel-staging",
+          "revision": "11790c2d40402baf32c160ea639cce2d727b14e3",
+          "suspect_score": 0.05,
+          "reasons": [
+            "0 min before the incident",
+            "changed no workload or config in sentinel-staging (Git moved elsewhere)"
+          ]
+        }
+      },
+      {
+        "kind": "change",
+        "source": "correlator",
+        "title": "no workload or config change before the incident",
+        "detail": "No new ReplicaSet or ConfigMap in sentinel-staging between 06:55 and 07:24 UTC: a deploy or config change is unlikely to be the cause; look at dependencies, infrastructure and load.",
+        "at": "2026-10-30T07:24:11.400000Z",
+        "data": {
+          "change": "none",
+          "summary": true,
+          "suspect_score": 0.0,
+          "reasons": []
+        }
+      }
+    ],
+    "evidence_collected_at": "2026-10-30T07:25:09.024399Z",
+    "pack": {
+      "items": [
+        {
+          "id": "E1",
+          "kind": "change",
+          "source": "correlator",
+          "title": "no workload or config change before the incident",
+          "text": "No new ReplicaSet or ConfigMap in sentinel-staging between 06:55 and 07:24 UTC: a deploy or config change is unlikely to be the cause; look at dependencies, infrastructure and load.",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:24:11.400000Z"
+        },
+        {
+          "id": "E2",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to 11790c2",
+          "text": "suspect 0.05 (0 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:24:31Z"
+        },
+        {
+          "id": "E3",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to ab15701",
+          "text": "suspect 0.01 (22 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:02:35Z"
+        },
+        {
+          "id": "E4",
+          "kind": "change",
+          "source": "argocd",
+          "title": "Argo CD synced sentinel-staging to 4461b95",
+          "text": "suspect 0.01 (25 min before the incident; changed no workload or config in sentinel-staging (Git moved elsewhere)). source path apps/overlays/staging",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T06:58:55Z"
+        },
+        {
+          "id": "E5",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api 5xx ratio (5m)",
+          "text": "now 0.1665, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        },
+        {
+          "id": "E6",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine 5xx ratio (5m)",
+          "text": "now 0, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        },
+        {
+          "id": "E7",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine p95 latency seconds (5m)",
+          "text": "now 0.004754, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        },
+        {
+          "id": "E8",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api p95 latency seconds (5m)",
+          "text": "now 0.095, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        },
+        {
+          "id": "E9",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "risk-engine requests per second (5m)",
+          "text": "now 4.74, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        },
+        {
+          "id": "E10",
+          "kind": "metric",
+          "source": "prometheus",
+          "title": "order-api requests per second (5m)",
+          "text": "now 4.993, 1h earlier n/a",
+          "count": 1,
+          "first_at": null,
+          "last_at": "2026-10-30T07:25:08.951237Z"
+        }
+      ],
+      "token_budget": 6000,
+      "tokens_estimated": 382,
+      "dropped": {},
+      "raw_items": 10
+    },
+    "diagnosis": {
+      "status": "diagnosed",
+      "model": "claude-haiku-5-5",
+      "diagnosis": {
+        "summary": "order-api 5xx ratio is about 16.7% in sentinel-staging while risk-engine shows no errors, latency is low and request rates are steady. No workload or config change preceded the incident, so the cause is not established.",
+        "category": "unknown",
+        "confidence": "low",
+        "probable_cause": {
+          "statement": "The evidence does not identify the cause of order-api's elevated 5xx errors. Risk-engine is healthy and traffic is flat, which argues against a load change in that path, but no error source is shown.",
+          "evidence": [
+            "E5",
+            "E6",
+            "E9",
+            "E10"
+          ]
+        },
+        "supporting": [
+          {
+            "statement": "No new ReplicaSet or ConfigMap was found in sentinel-staging before the incident, so a workload or config change is unlikely to be the cause.",
+            "evidence": [
+              "E1"
+            ]
+          },
+          {
+            "statement": "Argo CD syncs before the incident changed no workload or config in sentinel-staging, so they do not explain the errors.",
+            "evidence": [
+              "E2",
+              "E3",
+              "E4"
+            ]
+          },
+          {
+            "statement": "Order-api 5xx ratio is 0.1665 while its p95 latency is 0.095s, so errors are not accompanied by a latency spike.",
+            "evidence": [
+              "E5",
+              "E8"
+            ]
+          },
+          {
+            "statement": "Risk-engine shows zero 5xx and low p95 latency at similar request rates, so the errors are not coming from that dependency.",
+            "evidence": [
+              "E6",
+              "E7",
+              "E9"
+            ]
+          }
+        ],
+        "missing_evidence": [
+          "Order-api error logs or status code breakdown to identify the failing endpoint or error type.",
+          "Metrics for order-api's other downstream dependencies (database, cache, payment services) to test dependency failure.",
+          "Node, pod restart and resource metrics for order-api to test resource exhaustion.",
+          "One-hour-earlier baselines for all metrics are n/a, so the change over time cannot be confirmed."
+        ],
+        "injection_suspected": false
+      },
+      "attempts": 1,
+      "input_tokens": 1986,
+      "output_tokens": 886,
+      "cost_usd": 0.000642,
+      "budget_usd": 0.02,
+      "errors": [],
+      "prompt_sha256": "9fa24c25c7b38c4f37d9ad5a823981d636473e8934c56cc82072f2e77923c8a4",
+      "request_ids": [
+        "req_011CgY2HXzbnApvvj1T76DRn"
+      ],
+      "finished_at": "2026-10-30T07:25:14.311870Z"
+    },
+    "notified_at": "2026-10-30T07:25:14.675113Z",
+    "notify_error": null
+  }
+]
