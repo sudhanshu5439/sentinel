@@ -53,6 +53,13 @@ class Settings:
     # PostgreSQL DSN for the append-only audit log (a credential: from a Secret). Unset = no
     # durable audit, and therefore no live actions (no audit, no action).
     audit_database_url: str | None = None
+    # Revert PRs (8d). A fine-grained token for this one repository (contents + pull requests);
+    # unset = dry-run plans still work (public repo, read-only API), live reverts fail.
+    gitops_repo: str = "sudhanshu5439/sentinel-gitops"
+    github_token: str | None = None
+    # Tier 2: how often to check whether a human merged (approved) or closed (rejected) the PR.
+    approval_poll_seconds: float = 60.0
+    approval_timeout_minutes: int = 120
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -90,6 +97,10 @@ class Settings:
             actions_per_hour=min(max(int(os.getenv("ACTIONS_PER_HOUR", "3")), 0), 20),
             action_cooldown_minutes=max(int(os.getenv("ACTION_COOLDOWN_MINUTES", "30")), 1),
             audit_database_url=os.getenv("AUDIT_DATABASE_URL") or None,
+            gitops_repo=os.getenv("GITOPS_REPO", "sudhanshu5439/sentinel-gitops"),
+            github_token=os.getenv("GITHUB_TOKEN") or None,
+            approval_poll_seconds=max(float(os.getenv("APPROVAL_POLL_SECONDS", "60")), 5.0),
+            approval_timeout_minutes=max(int(os.getenv("APPROVAL_TIMEOUT_MINUTES", "120")), 1),
         )
 
     def kill_switch_engaged(self) -> bool:

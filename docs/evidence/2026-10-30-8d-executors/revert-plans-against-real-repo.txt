@@ -1,0 +1,6 @@
+53f636d (the bad-release chaos commit, already undone by the reset ae598d9)
+  -> revert of 53f636d refused: apps/overlays/staging/kustomization.yaml has changed since 53f636d (already undone?)
+ae598d9 (the latest change to the staging overlay (the reset itself))
+  -> revert ae598d9 → restore apps/overlays/staging/kustomization.yaml from 53f636d
+6501558 (a CI deploy commit for platform/aiops, outside the staging overlay)
+  -> revert of 6501558 refused: it touches platform/aiops/kustomization.yaml, outside apps/overlays/staging/

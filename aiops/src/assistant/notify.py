@@ -101,13 +101,23 @@ _STATUS_TEXT = {
 def _decision(decision: Decision) -> dict:
     """Policy output, not model output: action, tier, status and the rules that fired. Reasons
     quote cluster facts (a revision, a rollout name), so they are escaped like everything else."""
-    target = ", ".join(f"{k}={v}" for k, v in decision.target.items() if k != "namespace")
+    target = ", ".join(
+        f"{k}={str(v)[:12] if k == 'revision' else v}"
+        for k, v in decision.target.items()
+        if k in ("rollout", "app", "revision", "service", "replicas")
+    )
     line = f"*Action* (policy, tier {int(decision.tier)}): `{decision.action}`"
     if target:
         line += f" {slack_escape(target, 200)}"
     line += f" · {_STATUS_TEXT[decision.status]}"
     if decision.blocked_by:
         line += f" by {slack_escape(decision.blocked_by, 200)}"
+    if decision.result:
+        line += f"\n_{slack_escape(decision.result, 300)}_"
+    pr_url, pr = decision.target.get("pr_url"), decision.target.get("pr")
+    # A real link only for a URL GitHub's API returned for a PR the assistant opened itself.
+    if isinstance(pr_url, str) and pr_url.startswith("https://github.com/") and isinstance(pr, int):
+        line += f"\n<{pr_url}|Review PR #{pr}>: merging it approves, closing it rejects"
     return _section(line + "\n" + "\n".join(f"• {slack_escape(r, 200)}" for r in decision.reasons))
 
 
@@ -192,6 +202,15 @@ class SlackNotifier:
             error = f"Slack answered {r.status_code}: {r.text[:100]}"
         log.warning("incident %s: notification failed: %s", incident.id, error)
         return error
+
+    async def send_update(self, incident: Incident, text: str) -> str | None:
+        """A short follow-up (approval, rejection, action result) for an incident."""
+        line = f"incident `{incident.id}`: {slack_escape(text, 500)}"
+        try:
+            r = await self._client.post(self._url, json={"text": line})
+        except httpx.HTTPError as exc:
+            return f"Slack unreachable: {type(exc).__name__}"
+        return None if r.status_code == 200 else f"Slack answered {r.status_code}"
 
     async def aclose(self) -> None:
         await self._client.aclose()

@@ -1,7 +1,8 @@
-"""sentinel-assistant: the read-only incident assistant.
+"""sentinel-assistant: the incident assistant.
 
 POST /webhook/alertmanager  -> group alerts into incidents; a NEW incident starts one
-                               investigation in the background (collect, correlate, pack, diagnose)
+                               investigation in the background (collect, correlate, pack,
+                               diagnose, decide by policy, audit, act or plan, notify)
 GET  /incidents, GET /incidents/{id}
 /healthz (process alive), /readyz (ready to receive alerts)
 """
@@ -15,15 +16,17 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from fastapi import FastAPI, HTTPException
 
-from .actions import ActionStatus, Guards, apply_guards, decide
+from .actions import ActionKind, ActionStatus, Guards, apply_guards, decide
 from .audit import AuditLog, PostgresAudit, decision_row, diagnosis_row
-from .collectors import Collector, build_collectors, collect_all
+from .collectors import Collector, build_collectors, collect_all, kube_client
 from .config import Settings
 from .correlator import correlate, incident_start
 from .diagnosis import DiagnosisResult, DiagnosisStatus, diagnose
 from .evidence import Scope
+from .executor import Executor, GitOpsRepo, RolloutsApi
 from .grouping import IncidentGrouper, Outcome
 from .llm import LLM, AnthropicLLM
 from .models import Incident, WebhookPayload
@@ -70,9 +73,10 @@ async def investigate(
     notifier: SlackNotifier | None = None,
     guards: Guards | None = None,
     audit: AuditLog | None = None,
+    executor: Executor | None = None,
 ) -> None:
     """Collect evidence, score changes, build the pack, ask the LLM (once per incident), decide
-    the action by policy, audit, notify."""
+    the action by policy, audit, execute (or plan, in dry-run), notify, await approval."""
     now = datetime.now(UTC)
     try:
         scope = Scope(
@@ -122,11 +126,35 @@ async def investigate(
         f": {'; '.join(d.errors)}" if d.errors else "",
     )
     await decide_and_audit(incident, settings, guards, audit)
+    decision = incident.decision
+    if executor is not None and decision is not None and decision.action is not ActionKind.NOTIFY:
+        if decision.status is not ActionStatus.BLOCKED:
+            await executor.run(decision, incident.id, dry_run=not settings.action_mode_live)
+            log.info(
+                "incident %s: %s %s: %s",
+                incident.id,
+                decision.action,
+                decision.status,
+                decision.result,
+            )
+            if audit is not None:
+                await audit.write(incident, decision_row(incident, decision, event="action"))
     if notifier is not None:
         incident.notify_error = await notifier.send(incident)
         if incident.notify_error is None:
             incident.notified_at = datetime.now(UTC)
             log.info("incident %s: posted to Slack", incident.id)
+    # Tier 2: the PR is open; a human merging it is the approval. This task waits for it.
+    if executor is not None and decision is not None:
+        changed = await executor.await_approval(
+            decision, settings.approval_poll_seconds, settings.approval_timeout_minutes * 60
+        )
+        if changed:
+            log.info("incident %s: approval %s: %s", incident.id, decision.status, decision.result)
+            if audit is not None:
+                await audit.write(incident, decision_row(incident, decision, event="approval"))
+            if notifier is not None:
+                await notifier.send_update(incident, decision.result or "")
 
 
 LIVE = (ActionStatus.READY, ActionStatus.AWAITING_APPROVAL)
@@ -195,6 +223,7 @@ def create_app(
     llm: LLM | None = None,
     notifier: SlackNotifier | None = None,
     audit: AuditLog | None = None,
+    executor: Executor | None = None,
 ) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
@@ -215,6 +244,14 @@ def create_app(
     if audit is None and settings.audit_database_url:
         audit = PostgresAudit(settings.audit_database_url)
         clients.append(audit)
+    if executor is None and settings.kube_api_url:  # in-cluster (or against kubectl proxy)
+        github = httpx.AsyncClient(timeout=httpx.Timeout(10.0))
+        kube = kube_client(settings)
+        clients += [github] + ([kube] if kube else [])
+        executor = Executor(
+            GitOpsRepo(github, settings.gitops_repo, settings.github_token),
+            RolloutsApi(kube, settings.kube_api_url) if kube else None,
+        )
     # One set of guards for the process: rate limits count across incidents.
     guards = Guards(
         settings.allowed_namespaces,
@@ -253,7 +290,16 @@ def create_app(
                 log.info("incident opened: %s", result.incident.id)
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
                 task = asyncio.create_task(
-                    investigate(result.incident, collectors, settings, llm, notifier, guards, audit)
+                    investigate(
+                        result.incident,
+                        collectors,
+                        settings,
+                        llm,
+                        notifier,
+                        guards,
+                        audit,
+                        executor,
+                    )
                 )
                 running.add(task)
                 task.add_done_callback(running.discard)

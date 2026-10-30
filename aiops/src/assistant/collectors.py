@@ -547,18 +547,25 @@ def build_collectors(settings: Settings) -> tuple[list[Collector], list[httpx.As
             collectors.append(PrometheusCollector(http, settings.prometheus_url))
         if settings.loki_url:
             collectors.append(LokiCollector(http, settings.loki_url))
-    if settings.kube_api_url:
-        in_cluster = os.path.exists(settings.kube_token_file)
-        kube = httpx.AsyncClient(
-            timeout=timeout,
-            auth=TokenFileAuth(settings.kube_token_file) if in_cluster else None,
-            verify=settings.kube_ca_file if in_cluster else True,
-        )
+    kube = kube_client(settings)
+    if kube is not None and settings.kube_api_url:
         clients.append(kube)
         collectors.append(
             KubernetesCollector(kube, settings.kube_api_url, settings.argocd_namespace)
         )
     return collectors, clients
+
+
+def kube_client(settings: Settings) -> httpx.AsyncClient | None:
+    """In-cluster: the ServiceAccount token (re-read per request) and CA. Locally: kubectl proxy."""
+    if not settings.kube_api_url:
+        return None
+    in_cluster = os.path.exists(settings.kube_token_file)
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(settings.collect_timeout_seconds),
+        auth=TokenFileAuth(settings.kube_token_file) if in_cluster else None,
+        verify=settings.kube_ca_file if in_cluster else True,
+    )
 
 
 async def collect_all(scope: Scope, collectors: list[Collector], timeout: float) -> list[Evidence]:
