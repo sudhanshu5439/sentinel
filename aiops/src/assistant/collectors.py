@@ -63,6 +63,15 @@ LOG_LIMIT = 200
 LOG_PATTERN = (
     r"(?i)(error|exception|traceback|fatal|critical|panic|warn|refused|timeout|does not exist)"
 )
+# Python tracebacks reach Loki one line at a time. Frames (`  File ".../errors.py"`), source
+# excerpts and `^^^^` markers are indented and match LOG_PATTERN only by accident (a path named
+# errors.py); in the 7f run they were half the log items. The header adds nothing the exception
+# line does not. Excluded in the query, so they also stop using up LOG_LIMIT. What remains is
+# the unindented final line, `psycopg.errors.UndefinedTable: relation "orders" does not exist`.
+TRACEBACK_NOISE = (
+    r"^\s|^Traceback \(most recent call last\)"
+    r"|^During handling of the above exception|^The above exception was the direct cause"
+)
 METADATA_ONLY = {"Accept": "application/json;as=PartialObjectMetadataList;g=meta.k8s.io;v=v1"}
 # Argo Rollouts: "Rollout not completed, started update to revision 16 (58cb94cdf4)"
 _ROLLOUT_UPDATE = re.compile(r"started update to revision (\d+) \(([0-9a-z]+)\)")
@@ -103,6 +112,14 @@ def _ts(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
+def _value(result: list[dict[str, Any]], app: str) -> str | None:
+    """One app's sample from an instant-query result; None if absent or NaN (no data)."""
+    for series in result:
+        if series["metric"].get("app", "?") == app and series["value"][1] != "NaN":
+            return series["value"][1]
+    return None
+
+
 class PrometheusCollector:
     name = "prometheus"
 
@@ -119,32 +136,41 @@ class PrometheusCollector:
     async def collect(self, scope: Scope) -> list[Evidence]:
         ns, window = scope.namespace, int((scope.end - scope.start).total_seconds())
         items: list[Evidence] = []
+        window_label = f"at window start ({window // 60} min earlier)"
         for name, template in RED_QUERIES.items():
             expr = template.format(ns=ns)
-            now, before = await asyncio.gather(
-                self._query(expr, scope.end), self._query(expr, scope.end - BASELINE_OFFSET)
+            now, hour_ago, at_start = await asyncio.gather(
+                self._query(expr, scope.end),
+                self._query(expr, scope.end - BASELINE_OFFSET),
+                self._query(expr, scope.start),
             )
-            baseline = {s["metric"].get("app"): s["value"][1] for s in before}
             for series in now:
                 app, value = series["metric"].get("app", "?"), series["value"][1]
                 if value == "NaN":  # 0/0: no traffic at all, reported by requests per second
                     continue
+                detail = f"now {float(value):.4g}, 1h earlier "
+                base, base_label = _value(hour_ago, app), "1h earlier"
+                if base is None:
+                    # No data an hour ago (in the 7f runs the laptop had been off): fall back to
+                    # the start of the window, named as such, rather than give the model nothing.
+                    base, base_label = _value(at_start, app), window_label
+                    detail += "n/a (no data)"
+                    if base is not None:
+                        detail += f", {window_label} {float(base):.4g}"
+                else:
+                    detail += f"{float(base):.4g}"
                 items.append(
                     Evidence(
                         kind=EvidenceKind.METRIC,
                         source=self.name,
                         title=f"{app} {name}",
-                        detail=f"now {float(value):.4g}, 1h earlier "
-                        + (
-                            f"{float(baseline[app]):.4g}"
-                            if baseline.get(app, "NaN") != "NaN"
-                            else "n/a"
-                        ),
+                        detail=detail,
                         at=scope.end,
                         data={
                             "app": app,
                             "now": value,
-                            "baseline": baseline.get(app),
+                            "baseline": base,
+                            "baseline_at": base_label if base is not None else None,
                             "query": expr,
                         },
                     )
@@ -182,7 +208,9 @@ class LokiCollector:
         r = await self._http.get(
             f"{self._url}/loki/api/v1/query_range",
             params={
-                "query": f'{{namespace="{scope.namespace}"}} |~ `{LOG_PATTERN}`',
+                "query": (
+                    f'{{namespace="{scope.namespace}"}} !~ `{TRACEBACK_NOISE}` |~ `{LOG_PATTERN}`'
+                ),
                 "start": int(scope.start.timestamp() * 1e9),
                 "end": int(scope.end.timestamp() * 1e9),
                 "limit": LOG_LIMIT,

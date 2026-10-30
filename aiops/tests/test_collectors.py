@@ -62,6 +62,26 @@ def test_prometheus_reports_every_app_against_its_baseline():
     assert "order-api-abc/order-api container restarts in window" in titles
 
 
+def test_prometheus_falls_back_to_the_window_start_when_an_hour_ago_has_no_data():
+    hour_ago = (END - timedelta(hours=1)).timestamp()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        q, t = request.url.params["query"], float(request.url.params["time"])
+        if 'status="5xx"' not in q or t == hour_ago:  # the cluster was off an hour ago
+            return httpx.Response(200, json=prom_vector())
+        value = "0.3" if t == END.timestamp() else "0.002"
+        return httpx.Response(
+            200, json=prom_vector({"metric": {"app": "order-api"}, "value": [t, value]})
+        )
+
+    (ratio,) = run(PrometheusCollector(http(handler), "http://prom").collect(SCOPE))
+    assert (
+        ratio.detail == "now 0.3, 1h earlier n/a (no data), at window start (30 min earlier) 0.002"
+    )
+    assert ratio.data["baseline"] == "0.002"
+    assert ratio.data["baseline_at"] == "at window start (30 min earlier)"
+
+
 def test_prometheus_queries_only_the_incident_namespace():
     seen = []
 
@@ -78,6 +98,8 @@ def test_loki_returns_error_lines_with_and_without_a_level_label():
         query = request.url.params["query"]
         # A line filter, not a level selector: unlabelled tracebacks must be included.
         assert "level=" not in query and "|~" in query and "does not exist" in query
+        # Indented traceback frames are excluded in the query, before LOG_LIMIT applies.
+        assert "!~ `^\\s|^Traceback" in query
         ts = str(int(END.timestamp() * 1e9))
         return httpx.Response(
             200,
