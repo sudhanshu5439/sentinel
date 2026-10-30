@@ -73,6 +73,8 @@ jobs:
 
       - name: Vulnerability scan (fail on fixable CRITICAL)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SECRET_CONFIG: .github/trivy-secret.yaml
         with:
           image-ref: ${{ env.IMAGE }}:scan
           severity: CRITICAL
@@ -83,6 +85,8 @@ jobs:
       - name: Vulnerability report (HIGH + CRITICAL) for the Security tab
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_SECRET_CONFIG: .github/trivy-secret.yaml
         with:
           image-ref: ${{ env.IMAGE }}:scan
           severity: HIGH,CRITICAL
