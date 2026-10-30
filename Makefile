@@ -114,17 +114,31 @@ gitops-secrets: ## Create the DB password Secret in staging and prod (never stor
 	done
 
 .PHONY: aiops-secrets
-aiops-secrets: ## Create/refresh the assistant's Secret (Anthropic key, Slack webhook) from .env
+aiops-secrets: ## Create/refresh the assistant's and audit DB's Secrets from .env (DB passwords generated once)
 	@test -f .env || { echo "missing .env (see aiops/README or docs/PROGRESS.md)"; exit 1; }
 	@kubectl create namespace aiops --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+	@# Audit DB passwords: generated on first run, kept in .env (git-ignored) so a re-run does
+	@# not lock the assistant out of an existing database.
+	@for k in AUDIT_DB_ADMIN_PASSWORD AUDIT_DB_ASSISTANT_PASSWORD AUDIT_DB_GRAFANA_PASSWORD; do \
+	  grep -q "^$$k=" .env || echo "$$k=$$(openssl rand -hex 24)" >> .env; done
 	@# Values are read from .env inside this shell and passed as files: they never appear in
 	@# the process list, the terminal or Git.
 	@set -a; . ./.env; set +a; tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
 	  printf '%s' "$$ANTHROPIC_API_KEY" > "$$tmp/ANTHROPIC_API_KEY"; \
 	  printf '%s' "$$SLACK_WEBHOOK_URL" > "$$tmp/SLACK_WEBHOOK_URL"; \
+	  printf 'postgresql://assistant:%s@audit-db.aiops.svc:5432/audit?connect_timeout=5' \
+	    "$$AUDIT_DB_ASSISTANT_PASSWORD" > "$$tmp/AUDIT_DATABASE_URL"; \
+	  printf '%s' "$$AUDIT_DB_ADMIN_PASSWORD" > "$$tmp/POSTGRES_PASSWORD"; \
+	  printf '%s' "$$AUDIT_DB_ASSISTANT_PASSWORD" > "$$tmp/ASSISTANT_PASSWORD"; \
+	  printf '%s' "$$AUDIT_DB_GRAFANA_PASSWORD" > "$$tmp/GRAFANA_PASSWORD"; \
 	  kubectl -n aiops create secret generic sentinel-assistant \
 	    --from-file="$$tmp/ANTHROPIC_API_KEY" --from-file="$$tmp/SLACK_WEBHOOK_URL" \
-	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/sentinel-assistant up to date"
+	    --from-file="$$tmp/AUDIT_DATABASE_URL" \
+	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/sentinel-assistant up to date"; \
+	  kubectl -n aiops create secret generic audit-db \
+	    --from-file="$$tmp/POSTGRES_PASSWORD" --from-file="$$tmp/ASSISTANT_PASSWORD" \
+	    --from-file="$$tmp/GRAFANA_PASSWORD" \
+	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/audit-db up to date"
 
 .PHONY: aiops-status
 aiops-status: ## Assistant health, recent pipeline log lines and the last incidents (in-cluster)
@@ -134,17 +148,29 @@ aiops-status: ## Assistant health, recent pipeline log lines and the last incide
 	@kubectl -n aiops logs deploy/sentinel-assistant --tail=200 | grep '"msg"' | jq -r '.ts + "  " + .msg' | tail -8
 	@echo "--- incidents"
 	@kubectl -n aiops port-forward svc/sentinel-assistant 18000:8000 >/dev/null 2>&1 & pf=$$!; sleep 2; \
-	  curl -s localhost:18000/incidents | jq -r '.[:5][] | "\(.opened_at[:19])  \(.namespace)/\(.service)  \(.status)  \(.diagnosis.status // "pending") \(.diagnosis.diagnosis.category // "")  slack=\(if .notified_at then "sent" else (.notify_error // "-") end)"'; \
+	  curl -s localhost:18000/incidents | jq -r '.[:5][] | "\(.opened_at[:19])  \(.namespace)/\(.service)  \(.status)  \(.diagnosis.status // "pending") \(.diagnosis.diagnosis.category // "")  action=\(.decision.action // "-")/\(.decision.status // "-")  audited=\(.audited)  slack=\(if .notified_at then "sent" else (.notify_error // "-") end)"'; \
 	  kill $$pf
 
-.PHONY: aiops-off aiops-on
-# Break-glass switch: a ConfigMap kept out of Git on purpose, so Argo CD self-heal cannot revert
-# it. Mounted as a file the assistant re-reads before every diagnosis (kubelet syncs it in ~1 min).
-aiops-off: ## Kill switch: stop all LLM calls without a deploy (evidence + Slack continue)
-	kubectl -n aiops create configmap sentinel-assistant-switch --from-literal=LLM_ENABLED=false \
-	  --dry-run=client -o yaml | kubectl apply -f -
-aiops-on: ## Release the kill switch
-	kubectl -n aiops delete configmap sentinel-assistant-switch --ignore-not-found
+.PHONY: aiops-off aiops-on actions-off actions-on
+# Break-glass switches: one ConfigMap kept out of Git on purpose, so Argo CD self-heal cannot
+# revert it. Each key is mounted as a file the assistant re-reads before every incident (the
+# kubelet syncs a change in about a minute). "false" engages a switch; anything else releases it.
+switch = kubectl -n aiops get configmap sentinel-assistant-switch >/dev/null 2>&1 || \
+	  kubectl -n aiops create configmap sentinel-assistant-switch >/dev/null; \
+	kubectl -n aiops patch configmap sentinel-assistant-switch --type merge -p '{"data":{"$(1)":"$(2)"}}'
+aiops-off: ## Kill switch: stop all LLM calls (and so all actions) without a deploy; Slack continues
+	@$(call switch,LLM_ENABLED,false)
+aiops-on: ## Release the LLM kill switch
+	@$(call switch,LLM_ENABLED,true)
+actions-off: ## Kill switch for actions only: keep diagnosing, block every action
+	@$(call switch,ACTIONS_ENABLED,false)
+actions-on: ## Release the actions kill switch (ACTION_MODE in Git still decides dry-run vs live)
+	@$(call switch,ACTIONS_ENABLED,true)
+
+.PHONY: audit-log
+audit-log: ## The last audit events (diagnoses and decisions) from the append-only audit DB
+	@kubectl -n aiops exec audit-db-0 -- psql -U audit_admin -d audit -c \
+	  "SELECT id, to_char(at, 'MM-DD HH24:MI:SS') AS at, namespace, service, event, category, confidence, action, tier, status, left(prompt_sha256, 12) AS prompt FROM audit_events ORDER BY id DESC LIMIT $${N:-10}"
 
 .PHONY: gitops-status
 gitops-status: ## Show Argo CD apps, policies and the pods they run

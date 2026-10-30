@@ -76,6 +76,9 @@ def correlate(
         causes = [s for s in syncs if s.at + lo <= r.at <= s.at + hi]
         if causes:
             effects.setdefault(id(causes[-1]), []).append(r.title)
+            # The Git commit that produced this change: what a revert PR (Step 8) would undo.
+            r.data["sync_app"] = causes[-1].data.get("app")
+            r.data["sync_revision"] = causes[-1].data.get("revision")
 
     for e in changes:
         change = e.data.get("change")

@@ -16,6 +16,7 @@ import json
 import re
 from collections import defaultdict
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -99,6 +100,10 @@ class PackItem(BaseModel):
     count: int = 1
     first_at: datetime | None = None
     last_at: datetime | None = None
+    # Structured facts from the collectors (Kubernetes API, Argo CD), never rendered into the
+    # prompt. The action policy (Step 8) reads targets from here, so a revision or rollout name
+    # to act on always comes from the cluster, never from text the model wrote.
+    facts: dict[str, Any] = {}
 
     def render(self) -> str:
         when = ""
@@ -142,6 +147,7 @@ class _Draft(BaseModel):
     count: int = 1
     first_at: datetime | None = None
     last_at: datetime | None = None
+    facts: dict[str, Any] = {}
 
 
 def _metric_importance(e: Evidence) -> float:
@@ -237,6 +243,7 @@ def build_pack(evidence: list[Evidence], token_budget: int = DEFAULT_TOKEN_BUDGE
                     title=clean(e.title, 160),
                     text=clean(text),
                     last_at=e.at,
+                    facts={k: v for k, v in e.data.items() if k != "reasons"},
                 )
             )
         elif e.kind is EvidenceKind.METRIC:

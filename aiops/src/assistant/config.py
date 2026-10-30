@@ -41,6 +41,18 @@ class Settings:
     # LLM calls immediately, no restart. In-cluster it is an optional ConfigMap that is
     # deliberately not in Git, so Argo CD self-heal cannot undo it (`make aiops-off`).
     kill_switch_file: str = "/etc/assistant/switch/LLM_ENABLED"
+    # Step 8, guarded actions. dry-run unless ACTION_MODE=live is set on purpose: the policy
+    # runs and is audited, nothing is changed. ACTIONS_ENABLED=false in the same ConfigMap stops
+    # actions but keeps diagnosing (`make actions-off`).
+    action_mode_live: bool = False
+    actions_switch_file: str = "/etc/assistant/switch/ACTIONS_ENABLED"
+    allowed_namespaces: frozenset[str] = frozenset({"sentinel-staging", "sentinel-prod"})
+    prod_namespaces: frozenset[str] = frozenset({"sentinel-prod"})
+    actions_per_hour: int = 3
+    action_cooldown_minutes: int = 30
+    # PostgreSQL DSN for the append-only audit log (a credential: from a Secret). Unset = no
+    # durable audit, and therefore no live actions (no audit, no action).
+    audit_database_url: str | None = None
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -67,11 +79,33 @@ class Settings:
             llm_budget_usd=min(float(os.getenv("LLM_BUDGET_USD", "0.02")), 1.0),
             slack_webhook_url=os.getenv("SLACK_WEBHOOK_URL") or None,
             kill_switch_file=os.getenv("KILL_SWITCH_FILE", "/etc/assistant/switch/LLM_ENABLED"),
+            action_mode_live=os.getenv("ACTION_MODE", "dry-run").lower() == "live",
+            actions_switch_file=os.getenv(
+                "ACTIONS_SWITCH_FILE", "/etc/assistant/switch/ACTIONS_ENABLED"
+            ),
+            allowed_namespaces=_names(
+                os.getenv("ALLOWED_NAMESPACES", "sentinel-staging,sentinel-prod")
+            ),
+            prod_namespaces=_names(os.getenv("PROD_NAMESPACES", "sentinel-prod")),
+            actions_per_hour=min(max(int(os.getenv("ACTIONS_PER_HOUR", "3")), 0), 20),
+            action_cooldown_minutes=max(int(os.getenv("ACTION_COOLDOWN_MINUTES", "30")), 1),
+            audit_database_url=os.getenv("AUDIT_DATABASE_URL") or None,
         )
 
     def kill_switch_engaged(self) -> bool:
-        try:
-            with open(self.kill_switch_file) as f:
-                return f.read().strip().lower() == "false"
-        except OSError:  # no file = switch not set
-            return False
+        return _switched_off(self.kill_switch_file)
+
+    def actions_enabled(self) -> bool:
+        return not _switched_off(self.actions_switch_file)
+
+
+def _names(value: str) -> frozenset[str]:
+    return frozenset(n.strip() for n in value.split(",") if n.strip())
+
+
+def _switched_off(path: str) -> bool:
+    try:
+        with open(path) as f:
+            return f.read().strip().lower() == "false"
+    except OSError:  # no file = switch not set
+        return False

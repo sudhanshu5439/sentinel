@@ -128,3 +128,26 @@ def test_slack_failure_is_returned_not_raised_and_url_not_leaked():
     error = send(down)
     assert error and "unreachable" in error and "secret" not in error
     assert "404" in send(lambda r: httpx.Response(404, text="no_service"))
+
+
+def test_the_policy_decision_is_shown_with_its_tier_status_and_reasons():
+    from assistant.actions import ActionKind, ActionStatus, Decision, Tier
+
+    i = incident(diagnosed())
+    i.decision = Decision(
+        action=ActionKind.REVERT_COMMIT,
+        tier=Tier.ACT,
+        target={"namespace": "staging", "app": "sentinel-staging", "revision": "3f2c1a9"},
+        reasons=["diagnosis config_change/high", "revert gitops commit 3f2c1a9 <!channel>"],
+        status=ActionStatus.DRY_RUN,
+    )
+    blocks = text_of(build_message(i))
+    assert "tier 1" in blocks and "revert_commit" in blocks and "dry run" in blocks
+    assert "revision=3f2c1a9" in blocks and "<!channel>" not in blocks
+    assert "no action taken" in blocks
+
+
+def test_a_failed_audit_write_is_visible_in_the_message():
+    i = incident(diagnosed())
+    i.audited = False
+    assert "audit log write FAILED" in text_of(build_message(i))

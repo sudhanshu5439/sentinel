@@ -491,6 +491,7 @@ class KubernetesCollector:
                         data={
                             "change": "rollout",
                             "rollout": name,
+                            "phase": status["phase"],
                             "canary_hash": status.get("currentPodHash"),
                             "stable_hash": status.get("stableRS"),
                         },

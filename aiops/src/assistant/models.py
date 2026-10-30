@@ -10,6 +10,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .actions import Decision
 from .diagnosis import DiagnosisResult
 from .evidence import Evidence
 from .pack import EvidencePack
@@ -80,3 +81,7 @@ class Incident(BaseModel):
     # Slack (7f): when the message went out, or why it did not.
     notified_at: datetime | None = None
     notify_error: str | None = None
+    # Step 8: the action chosen by policy code (never by the model), after the guards.
+    decision: Decision | None = None
+    # False when an audit write failed (which also blocks any live action).
+    audited: bool | None = None

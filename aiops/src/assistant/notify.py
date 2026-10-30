@@ -14,6 +14,7 @@ import re
 
 import httpx
 
+from .actions import ActionStatus, Decision
 from .diagnosis import Diagnosis, DiagnosisResult, DiagnosisStatus
 from .models import Incident
 from .pack import EvidencePack
@@ -84,6 +85,32 @@ def _diagnosed(d: Diagnosis, pack: EvidencePack | None) -> list[dict]:
     return blocks
 
 
+_STATUS_TEXT = {
+    ActionStatus.NOTIFY_ONLY: "notify only",
+    ActionStatus.DRY_RUN: "*dry run*: recorded, nothing changed",
+    ActionStatus.READY: "executing",
+    ActionStatus.AWAITING_APPROVAL: "*waiting for approval*",
+    ActionStatus.APPROVED: "approved",
+    ActionStatus.REJECTED: "rejected",
+    ActionStatus.EXECUTED: "executed",
+    ActionStatus.FAILED: "failed",
+    ActionStatus.BLOCKED: "*blocked*",
+}
+
+
+def _decision(decision: Decision) -> dict:
+    """Policy output, not model output: action, tier, status and the rules that fired. Reasons
+    quote cluster facts (a revision, a rollout name), so they are escaped like everything else."""
+    target = ", ".join(f"{k}={v}" for k, v in decision.target.items() if k != "namespace")
+    line = f"*Action* (policy, tier {int(decision.tier)}): `{decision.action}`"
+    if target:
+        line += f" {slack_escape(target, 200)}"
+    line += f" · {_STATUS_TEXT[decision.status]}"
+    if decision.blocked_by:
+        line += f" by {slack_escape(decision.blocked_by, 200)}"
+    return _section(line + "\n" + "\n".join(f"• {slack_escape(r, 200)}" for r in decision.reasons))
+
+
 def build_message(incident: Incident) -> dict:
     r: DiagnosisResult | None = incident.diagnosis
     where = f"{incident.service} in {incident.namespace}"
@@ -115,12 +142,21 @@ def build_message(incident: Incident) -> dict:
             )
         ]
 
+    if incident.decision is not None:
+        body.append(_decision(incident.decision))
+
     footer = f"Alerts: {slack_escape(alerts, 200)} · incident `{incident.id}`"
     if r is not None and r.model:
         footer += (
             f" · {r.model}, {r.attempts} attempt{'s' if r.attempts != 1 else ''}, ${r.cost_usd:.4f}"
         )
-    footer += " · read-only: no action taken"
+    if incident.audited is False:
+        footer += " · :warning: audit log write FAILED"
+    if incident.decision is None or incident.decision.status not in (
+        ActionStatus.EXECUTED,
+        ActionStatus.READY,
+    ):
+        footer += " · no action taken"
     return {
         "text": headline,  # notification / fallback text
         "blocks": [

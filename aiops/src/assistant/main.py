@@ -17,6 +17,8 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import FastAPI, HTTPException
 
+from .actions import ActionStatus, Guards, apply_guards, decide
+from .audit import AuditLog, PostgresAudit, decision_row, diagnosis_row
 from .collectors import Collector, build_collectors, collect_all
 from .config import Settings
 from .correlator import correlate, incident_start
@@ -66,8 +68,11 @@ async def investigate(
     settings: Settings,
     llm: LLM | None = None,
     notifier: SlackNotifier | None = None,
+    guards: Guards | None = None,
+    audit: AuditLog | None = None,
 ) -> None:
-    """Collect evidence, score changes, build the pack, ask the LLM (once per incident), notify."""
+    """Collect evidence, score changes, build the pack, ask the LLM (once per incident), decide
+    the action by policy, audit, notify."""
     now = datetime.now(UTC)
     try:
         scope = Scope(
@@ -116,11 +121,65 @@ async def investigate(
         d.cost_usd,
         f": {'; '.join(d.errors)}" if d.errors else "",
     )
+    await decide_and_audit(incident, settings, guards, audit)
     if notifier is not None:
         incident.notify_error = await notifier.send(incident)
         if incident.notify_error is None:
             incident.notified_at = datetime.now(UTC)
             log.info("incident %s: posted to Slack", incident.id)
+
+
+LIVE = (ActionStatus.READY, ActionStatus.AWAITING_APPROVAL)
+
+
+async def decide_and_audit(
+    incident: Incident, settings: Settings, guards: Guards | None, audit: AuditLog | None
+) -> None:
+    """Policy, then guards, then the audit log. No audit, no action: a live action whose
+    record cannot be written is blocked (dry runs change nothing, so they may proceed)."""
+    decision = decide(
+        incident.diagnosis,
+        incident.pack,
+        incident.namespace,
+        incident.service,
+        settings.prod_namespaces,
+    )
+    guards = guards or Guards(
+        settings.allowed_namespaces,
+        settings.actions_per_hour,
+        timedelta(minutes=settings.action_cooldown_minutes),
+    )
+    apply_guards(
+        decision,
+        guards,
+        incident.namespace,
+        incident.service,
+        settings.actions_enabled(),
+        dry_run=not settings.action_mode_live,
+    )
+
+    def block_if_live() -> None:
+        if decision.status in LIVE:
+            decision.status = ActionStatus.BLOCKED
+            decision.blocked_by = "no audit, no action: the audit log could not be written"
+
+    ok = audit is not None and await audit.write(incident, diagnosis_row(incident))
+    if not ok:
+        block_if_live()
+    if audit is not None:
+        ok = await audit.write(incident, decision_row(incident, decision)) and ok
+        if not ok:
+            block_if_live()
+    incident.decision = decision
+    incident.audited = ok if audit is not None else None
+    log.info(
+        "incident %s: decision %s tier %d %s%s",
+        incident.id,
+        decision.action,
+        decision.tier,
+        decision.status,
+        f" ({decision.blocked_by})" if decision.blocked_by else "",
+    )
 
 
 def _log_failure(task: asyncio.Task[None]) -> None:
@@ -135,6 +194,7 @@ def create_app(
     collectors: list[Collector] | None = None,
     llm: LLM | None = None,
     notifier: SlackNotifier | None = None,
+    audit: AuditLog | None = None,
 ) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
@@ -152,6 +212,15 @@ def create_app(
     if notifier is None and settings.slack_webhook_url:
         notifier = SlackNotifier(settings.slack_webhook_url)
         clients.append(notifier)
+    if audit is None and settings.audit_database_url:
+        audit = PostgresAudit(settings.audit_database_url)
+        clients.append(audit)
+    # One set of guards for the process: rate limits count across incidents.
+    guards = Guards(
+        settings.allowed_namespaces,
+        settings.actions_per_hour,
+        timedelta(minutes=settings.action_cooldown_minutes),
+    )
     # Strong references: the event loop only keeps weak ones, so an unreferenced task can vanish.
     running: set[asyncio.Task[None]] = set()
 
@@ -184,7 +253,7 @@ def create_app(
                 log.info("incident opened: %s", result.incident.id)
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
                 task = asyncio.create_task(
-                    investigate(result.incident, collectors, settings, llm, notifier)
+                    investigate(result.incident, collectors, settings, llm, notifier, guards, audit)
                 )
                 running.add(task)
                 task.add_done_callback(running.discard)
