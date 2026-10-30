@@ -194,7 +194,37 @@ diagnosis → 7f Slack + deploy.
   `unknown`/low, "alert not reproduced by the evidence", $0.0007. Prompt hashes reproducible
   from the stored packs. Weak spot seen: start-up probe failures read as a symptom (they are
   normal while a pod starts).
-- Found on the way: the first live run lost both webhooks silently. The SDK import made the
+- **7f done: Slack + in-cluster deploy + Alertmanager route.**
+  - Slack app "Sentinel Assistant" created through the Slack API (manifest + OAuth), webhook
+    into #sentinel-incidents; URL only in `.env` and the in-cluster Secret.
+  - `notify.py`: one Block Kit message per incident (cause with its cited evidence quoted,
+    supporting claims, what the assistant could not see, cost, "read-only: no action taken";
+    escalations say a human is needed and why). Model/telemetry text escaped (`&<>` entities
+    defuse `<!channel>`, `<@user>`, `<url|label>`; bare URLs defanged; `@here` broken),
+    length-capped; Slack failures recorded on the incident, never raised.
+  - Shipping: `aiops/Dockerfile`; CI builds/scans/signs/attests `sentinel-assistant` on its
+    own path (aiops/ changes start no app canary) and commits the digest to sentinel-gitops
+    `platform/aiops`. First build failed Trivy's *secret* scan on a docstring in the Anthropic
+    SDK (vulnerabilities were 0): narrow allow-rule in `.github/trivy-secret.yaml`.
+  - gitops PRs #15–#17: `aiops` namespace (Kyverno-enforced: unpinned image denied, shown with
+    a server-side dry run), namespaced list-only Roles (verified with `kubectl auth can-i`: no
+    Secrets, exec, writes or other namespaces), restricted pod (non-root, read-only root FS,
+    no capabilities), Argo CD Application, Alertmanager route `slo=~".+"` → assistant.
+  - Kill switch redesigned: `kubectl set env` would be reverted by self-heal, so the
+    break-glass switch is an optional ConfigMap kept out of Git, re-read as a file before every
+    diagnosis (`make aiops-off/on`). `make aiops-secrets`, `make aiops-status`.
+- 7f live runs ([evidence](evidence/2026-10-30-7f-end-to-end/README.md)), staging `orders` table
+  renamed (a dependency failure, no deploy):
+  1. Automatic: Alertmanager → assistant → Haiku worked, nothing reached Slack: the notifier
+     was never passed to the background task (fixed + regression test + exceptions in
+     background tasks now logged).
+  2. Automatic: break 07:24:11 → incident 07:25:08 → diagnosis + Slack 07:25:14. Still
+     `unknown`: the log collector only selected streams with a `level` label, so the
+     unlabelled `relation "orders" does not exist` never reached the model (which said so).
+  3. After the log fix: `dependency`/medium, cause = missing Postgres table, citing the app
+     exception and the Postgres log. $0.0007.
+- Evidence pack: startup-probe failures labelled as start-up noise (7e weak spot).
+- Found on the way: the first 7e live run lost both webhooks silently. The SDK import made the
   server start slower than the script's `sleep 4`, and `curl -s` hid the refusal. Wait on
   `/healthz` and fail loudly (also what a readiness probe is for).
 
@@ -206,10 +236,15 @@ diagnosis → 7f Slack + deploy.
       Capture the webhook body as a test fixture for the assistant.
 - [ ] Decision note 0001 (WSL memory incident), written by Sudhanshu
 - [ ] Step 5 + 6 explainer docs and LinkedIn posts (need screenshots)
-- [ ] **7. AIOps assistant (read-only)** ← current step: 7f next: Slack notification, deploy
-      to an `aiops` namespace (signed image, read-only RBAC, API key from a Secret), Alertmanager
-      receiver. Needs a Slack workspace + incoming webhook from Sudhanshu.
-- [ ] Pack: mark probe failures shortly after pod start as start-up noise (seen in 7e live run)
+- [x] **7. AIOps assistant (read-only)**: done (7a–7f), running in-cluster, posting to Slack
+- [ ] Pack: fold multi-line Python tracebacks into their final exception line (half the log
+      items in the 7f run 3 were frames)
+- [ ] Baselines read "n/a" in the 7f runs: check the 1h-offset queries against Prometheus history
+- [ ] **8. Guarded actions** ← next: action catalogue + tiers chosen by policy code from the
+      diagnosis category, approvals in Slack, revert PRs to sentinel-gitops, durable audit log
+      (evidence, prompt hash, output, decision), kill switch already in place
+- [ ] Slack screenshot of the run-3 diagnosis for the README (Sudhanshu; the message holds no
+      secrets, but check before committing)
 - [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`
 - [ ] Kind port binding (127.0.0.1) applies on the next `make down && make up && make gitops-up`
 - [ ] Rotate the Anthropic API key (it was pasted into a chat); store the new one with `read -s`
@@ -243,3 +278,4 @@ diagnosis → 7f Slack + deploy.
 | 29 Oct 2026 | New architecture diagram; API key set up and tested; 7c evidence pack with redaction | 7d correlator |
 | 29 Oct 2026 | 7d correlator, verified on 5 live bad releases; zero-error rules, Prometheus volume, loopback ports, safe `make cluster` | 7e LLM diagnosis |
 | 29 Oct 2026 | 7e LLM diagnosis (Haiku, cited + validated, retry → escalate, budget, kill switch); live bad release + control run saved as evidence | 7f Slack + deploy |
+| 30 Oct 2026 | 7f: Slack app via API, notifier, signed image via CI, aiops namespace + read-only RBAC + Alertmanager route; 3 live runs found 2 bugs (notifier never wired, unlabelled error logs missed), both fixed; final run diagnosed the DB failure correctly | Step 8 guarded actions |

@@ -12,8 +12,8 @@ personal lab, in public.
 - **Bad releases roll themselves back.** Argo Rollouts canaries are judged by Prometheus against
   error-rate and latency thresholds; a failing canary aborts and the stable version keeps serving.
 - **Alerts mean user pain.** SLOs with multi-window, multi-burn-rate alerts (unit-tested).
-- **An AI assistant investigates incidents** *(in progress)*: groups alerts, gathers evidence,
-  correlates recent changes and asks an LLM for a diagnosis that must cite its evidence.
+- **An AI assistant investigates incidents**: groups alerts, gathers evidence, correlates
+  recent changes, asks an LLM for a diagnosis that must cite its evidence, and posts it to Slack.
 - **The AI is secured like any other untrusted input.** Telemetry can carry prompt injection, so
   the model gets data, not authority: read-only access, redaction, schema-validated cited output,
   and actions chosen by deterministic policy, never by the model's free text.
@@ -44,7 +44,7 @@ the cluster that Argo CD syncs. Releases, rollbacks and platform changes are all
 | 4 | GitOps + policy: Argo CD app-of-apps, promotion by digest via PR, Kyverno admission policies | ✅ |
 | 5 | Progressive delivery: Argo Rollouts canary with Prometheus analysis, automatic abort | ✅ |
 | 6 | Observability + SLOs: Alloy, Prometheus, Loki, Tempo, Grafana, burn-rate alerts, Traefik ingress | ✅ |
-| 7 | AIOps assistant (read-only): ✅ alert grouping · ✅ evidence collection · ✅ redacted evidence pack · ✅ change correlation · ✅ cited LLM diagnosis · ⏳ Slack + in-cluster deploy | 🚧 |
+| 7 | AIOps assistant (read-only): alert grouping, evidence collection, redacted evidence pack, change correlation, cited LLM diagnosis, Slack; runs in-cluster from a signed image | ✅ |
 | 8 | Guarded actions: action tiers, approvals, revert PRs, audit log, kill switch | planned |
 | 9 | Chaos evaluation: 9 scenarios (incl. prompt injection) × 5 runs, assistant on vs. off | planned |
 | 10 | EKS demo (apply, record, destroy), decision notes, video | planned |
@@ -64,7 +64,7 @@ Detailed log: [docs/PROGRESS.md](docs/PROGRESS.md) · Design: [docs/PLAN.md](doc
 
 ![Argo Rollouts: a completed canary in prod](docs/screenshots/2026-10-28-ingress/06-rollouts-prod.png)
 
-## The incident assistant (Step 7, in progress)
+## The incident assistant (Step 7)
 
 ```
 Alertmanager ──webhook──▶ sentinel-assistant (FastAPI)
@@ -74,7 +74,7 @@ Alertmanager ──webhook──▶ sentinel-assistant (FastAPI)
                           4. correlate  recent syncs / rollouts / config changes, scored            ✅
                           5. diagnose   LLM → schema-validated JSON; every claim cites an E-id;  ✅
                                         invalid → one retry → "unknown, escalate"
-                          6. notify     Slack + GET /incidents                                   ⏳ Slack
+                          6. notify     Slack + GET /incidents                                   ✅
 ```
 
 Design rules: read-only until Step 8; one alert storm = one investigation = one LLM call; a
@@ -86,6 +86,14 @@ config-only bad release in staging was diagnosed as `config_change` (high), its 
 exact ConfigMap switch; a control alert on healthy, unchanged prod came back `unknown` (low)
 instead of an invented cause. One attempt each, under $0.001 per incident (`claude-haiku-5-5`).
 One run, not a benchmark: the measured evaluation is Step 9.
+
+**In the cluster, end to end** ([evidence](docs/evidence/2026-10-30-7f-end-to-end/README.md)):
+a real database failure in staging (table renamed, no deploy) fired the SLO alert, Alertmanager
+called the assistant, and the diagnosis was in Slack 6 seconds after the webhook, with nobody
+sending anything by hand. The first runs also found two bugs of mine: the notifier was never
+wired in, and the log collector missed unlabelled error lines, so the model honestly answered
+"unknown". After the fixes it named the cause: `dependency`, a missing Postgres table, citing
+both the app exception and the Postgres log.
 
 ![Argo CD: every platform component managed from Git](docs/screenshots/2026-10-28-ingress/02-argocd-applications.png)
 
@@ -101,10 +109,11 @@ untrusted.
 | Query injection via alert labels | Namespace validated as an RFC 1123 name before it reaches PromQL, LogQL or an API path | ✅ built |
 | Secrets / PII leaving the cluster in prompts | Redaction pass over the evidence pack before any LLM call | ✅ built |
 | Hallucinated root causes | JSON-schema-constrained output, then code checks: every claim cites evidence IDs that exist; a release/config cause must cite a change; one retry, then "unknown, escalate" | ✅ built |
-| Over-privileged AI agent | Read-only ServiceAccount (events, Argo CD Applications, Rollouts); token re-read per request | ✅ built (RBAC manifest in 7f) |
+| Over-privileged AI agent | Namespaced Roles, `list` only, in the namespaces it investigates (events, ConfigMaps, ReplicaSets, Rollouts, AnalysisRuns, Argo CD Applications); no Secrets, exec or write verbs, verified with `kubectl auth can-i`; token re-read per request | ✅ built |
 | Cost / denial of wallet from alert storms | One incident → one investigation; 30 s timeout, max-token cap, per-incident dollar budget checked against the worst case *before* each call; unpriced model refused | ✅ built |
 | Unexplainable automated actions | Prompt SHA-256, tokens, cost, request IDs and every rejected attempt stored per incident; `LLM_ENABLED=false` kill switch; audit log and human approval for risky tiers next | ✅ record + kill switch · audit log in 8 |
-| Tampered assistant image | Same pipeline as the apps: scanned, signed, admitted only if verified by Kyverno | pipeline ✅ · deploy in 7f |
+| Tampered assistant image | Same pipeline as the apps: scanned (0 vulnerabilities at first build), SBOM, cosign keyless signature, SLSA provenance; Kyverno admits it only by digest and verified signature | ✅ built |
+| Untrusted text reaching humans (Slack) | Model and telemetry text escaped before Slack: `<!channel>`, `<@user>` and `<url\|label>` links neutralised, bare URLs defanged, lengths capped; a Slack failure never breaks the investigation | ✅ built |
 
 The chaos evaluation (Step 9) adds a **prompt-injection scenario**: a service logs adversarial
 instructions during an incident, and the pass criterion is that the assistant's diagnosis and
