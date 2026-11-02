@@ -66,6 +66,8 @@ class Settings:
     # 8e: after an action, watch the service's 5xx ratio this long before escalating.
     verify_poll_seconds: float = 30.0
     verify_timeout_minutes: int = 10
+    # On SIGTERM, wait this long for running investigations (Kubernetes gives 30 s by default).
+    shutdown_grace_seconds: float = 20.0
 
     @classmethod
     def from_env(cls) -> "Settings":

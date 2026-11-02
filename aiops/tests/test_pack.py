@@ -6,6 +6,7 @@ from assistant.evidence import Evidence, EvidenceKind
 from assistant.pack import build_pack, clean, log_message, redact, template
 
 T = datetime(2026, 10, 29, 12, 0, tzinfo=UTC)
+FAKE_AWS_KEY = "AKIA" + "ABCDEFGHIJKLMNOP"  # not a real key: input for the redaction test
 
 
 def log(line: str, app: str = "order-api", minute: int = 0) -> Evidence:
@@ -36,7 +37,8 @@ def metric(title: str, now: str, baseline: str | None) -> Evidence:
         ("connect postgres://app:s3cr3tPass@postgres:5432/orders", "s3cr3tPass"),
         ('{"password": "hunter2"}', "hunter2"),
         ("Authorization: Bearer abc.def.ghi-token-123", "abc.def.ghi-token-123"),
-        ("aws AKIAABCDEFGHIJKLMNOP denied", "AKIAABCDEFGHIJKLMNOP"),
+        # A made-up key, assembled at runtime so secret scanners do not flag the test source.
+        ("aws " + FAKE_AWS_KEY + " denied", FAKE_AWS_KEY),
         ("notify alice@example.com failed", "alice@example.com"),
         ("jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sig_part", "eyJhbGciOiJIUzI1NiJ9"),
     ],

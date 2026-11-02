@@ -1,0 +1,6 @@
+# Gitleaks findings reviewed and accepted. One fingerprint per line; each must have a reason.
+#
+# aiops/tests/test_pack.py, commit 3948040 (29 Oct): a made-up AWS key ("AKIA" + 16 letters)
+# used as input for the redaction unit test, not a credential. The test now assembles it at
+# runtime; this line covers the old commit, which stays in history.
+39480401c9de0c6d0dff824aebc0c251058f05ea:aiops/tests/test_pack.py:aws-access-token:39

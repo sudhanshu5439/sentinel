@@ -40,7 +40,24 @@ def rebuild(rows: list[dict[str, Any]]) -> list[Incident]:
     for row in rows:
         iid, event, payload = row["incident_id"], row["event"], row.get("payload") or {}
         try:
-            if event == "diagnosis":
+            if event == "opened" and iid not in incidents:
+                # Accepted but maybe never diagnosed: kept open with no diagnosis, so start-up
+                # investigates it again (a later diagnosis row replaces this one).
+                meta = payload.get("incident") or {}
+                alerts = [AlertRecord.model_validate(a) for a in payload.get("alerts", [])]
+                opened = meta.get("opened_at") or _opened_at(iid)
+                if opened is None:
+                    continue
+                incidents[iid] = Incident(
+                    id=iid,
+                    namespace=row["namespace"],
+                    service=row["service"],
+                    status=IncidentStatus.OPEN,
+                    opened_at=opened,
+                    last_activity_at=meta.get("last_activity_at") or opened,
+                    alerts={a.fingerprint: a for a in alerts},
+                )
+            elif event == "diagnosis":
                 meta = payload.get("incident") or {}
                 opened = meta.get("opened_at") or _opened_at(iid)
                 if opened is None:

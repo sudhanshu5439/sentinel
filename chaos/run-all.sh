@@ -9,7 +9,7 @@ for r in $(seq 1 "$runs"); do
   for s in $scenarios; do
     echo "=== $(date -u +%T) $s run $r"
     bash eval.sh "$s" "$r"
-    sleep 150   # past the 2-minute incident window (eval setting), so the next run is a new incident
+    sleep 150   # past the 2-minute incident window; eval.sh also waits for a clean staging
   done
 done
 echo "=== done $(date -u +%T)"

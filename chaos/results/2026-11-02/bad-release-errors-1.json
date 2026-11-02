@@ -1,0 +1,7 @@
+{
+  "scenario": "bad-release-errors",
+  "run": 1,
+  "injected_at": "2026-11-02T06:05:42Z",
+  "alert_path": "handed-to-webhook",
+  "error": "no incident was diagnosed and notified"
+}

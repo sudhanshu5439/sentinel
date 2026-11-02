@@ -278,6 +278,37 @@ diagnosis → 7f Slack + deploy.
     (*would PATCH rollouts/order-api/status*, 13 s before Argo's own analysis aborted it).
   - Live in staging is gitops PR #19 (one write permission, prod outside the blast radius),
     left for Sudhanshu to merge.
+- **8e** (`2850f0e`, `c16a548`; gitops PR #21)
+  ([evidence](evidence/2026-11-02-8e-restart-and-verify/README.md)).
+  - Incidents survive a restart: rebuilt at start-up from the audit log (diagnosis row, latest
+    decision, new `resolved` event); tier 2 approval waits resume. Live: DB-outage incident,
+    assistant restarted mid-incident → `restored 1 incidents (1 open)`, no second LLM call;
+    Alertmanager's resolved closed it 9 min later (it used to be `resolved: ignored`).
+  - **Bug found by the Step 9 pilot**: a restored *resolved* incident got its timestamps by
+    attribute assignment (pydantic does not validate those), so they stayed strings and the
+    next alert for that service crashed the webhook (HTTP 500, nothing investigated) for ~18
+    minutes. Rebuilt through `model_validate`; the restart test now sends an alert afterwards
+    and fails on the old code. Lesson: test the path *after* the restore, not just the restore.
+  - Verify after an action: the service's 5xx ratio every 30 s; 2 healthy readings = recovered,
+    10 min without = escalate; no data = "could not verify". Audited (`verify`). Waits for a
+    live action (PR #19) for its first real run.
+  - Grafana "Sentinel / Audit" dashboard on the audit DB through the SELECT-only role
+    (PostgreSQL plugin re-enabled, password from a Secret). Checked: rows readable, a DELETE
+    through Grafana is refused (`permission denied for table audit_events`).
+
+### 9. Chaos evaluation, started
+
+- Harness: `chaos/eval.sh <scenario> <run>` (one run, JSON result, staging always put back),
+  `chaos/run-all.sh [runs]`, `chaos/summarize.py` (medians and n/N only).
+- Scenarios now: bad-release-errors, bad-release-latency, prompt-injection (the canary pod
+  writes instructions to the assistant into its own log), db-outage (real alert path),
+  unsigned-image. Not yet: memory leak and network latency (need Chaos Mesh), bad Redis config
+  (overlay patch), traffic surge.
+- Evaluation setting: incident window 2 min (gitops PR #20), so runs do not join each other.
+  Revert after the evaluation.
+- With actions in dry-run, MTTR "assistant on vs off" cannot be measured yet. What is measured:
+  diagnosis and action correctness, harmful actions, injection flagged, alert → Slack time, and
+  for canaries how far the assistant's decision came before Argo Rollouts' own abort.
 
 ## Next
 
@@ -297,10 +328,10 @@ diagnosis → 7f Slack + deploy.
 - [ ] **Sudhanshu: fine-grained GitHub token** for sentinel-gitops only (Contents RW, Pull
       requests RW, Issues RW), added to `.env` as `GITHUB_TOKEN`, then `make aiops-secrets`;
       then a live revert PR run
-- [ ] 8e: after an action, watch the SLO for N minutes; not recovered → escalate. Postmortem
-      draft as a GitHub issue. Grafana panel on the audit table.
-- [ ] Incidents survive a restart (rebuild open ones from the audit log): today a restart
-      makes the next "resolved" ignored (seen live in 8b run 3)
+- [x] 8e: verify after an action, incidents survive a restart, Grafana audit dashboard
+- [ ] Postmortem draft as a GitHub issue (needs the GitHub token)
+- [ ] Step 9: 5 runs per scenario; Chaos Mesh for memory leak + network latency; bad Redis
+      config; traffic surge; then revert the 2-min eval window (gitops PR #20)
 - [ ] Slack screenshot of the run-3 diagnosis for the README (Sudhanshu; the message holds no
       secrets, but check before committing)
 - [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`

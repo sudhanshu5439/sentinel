@@ -64,6 +64,26 @@ def diagnosis_row(incident: Incident) -> dict[str, Any]:
     }
 
 
+def opened_row(incident: Incident) -> dict[str, Any]:
+    """Written before Alertmanager gets its 200: Alertmanager will not re-send a delivered
+    alert for 12 h, so an incident accepted but not yet diagnosed when the pod stops would be
+    lost (Step 9 pilot: a deploy killed the assistant 60 s into a DB-outage investigation).
+    On start-up, an incident with this row and no diagnosis is investigated again."""
+    return {
+        "event": "opened",
+        "category": None,
+        "confidence": None,
+        "status": "open",
+        "prompt_sha256": None,
+        "pack_sha256": None,
+        "cost_usd": None,
+        "payload": {
+            "incident": _meta(incident),
+            "alerts": [a.model_dump(mode="json") for a in incident.alerts.values()],
+        },
+    }
+
+
 def resolved_row(incident: Incident) -> dict[str, Any]:
     """Every alert of the incident resolved. Also what tells a restarted assistant that this
     incident is over (incidents are rebuilt from the audit log, see restore.py)."""
@@ -128,11 +148,11 @@ def decision_row(incident: Incident, decision: Decision, event: str = "decision"
     }
 
 
-RESTORE_EVENTS = ("diagnosis", "decision", "action", "approval", "resolved")
+RESTORE_EVENTS = ("opened", "diagnosis", "decision", "action", "approval", "resolved")
 RECENT = """
 SELECT incident_id, namespace, service, event, at, payload FROM audit_events
 WHERE at > now() - make_interval(hours => %(hours)s)
-  AND event IN ('diagnosis', 'decision', 'action', 'approval', 'resolved')
+  AND event IN ('opened', 'diagnosis', 'decision', 'action', 'approval', 'resolved')
 ORDER BY id
 """
 

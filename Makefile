@@ -171,6 +171,12 @@ actions-off: ## Kill switch for actions only: keep diagnosing, block every actio
 actions-on: ## Release the actions kill switch (ACTION_MODE in Git still decides dry-run vs live)
 	@$(call switch,ACTIONS_ENABLED,true)
 
+.PHONY: chaos-eval chaos-summary
+chaos-eval: ## Step 9: every scenario RUNS times (default 5) in staging: make chaos-eval RUNS=5
+	@bash chaos/run-all.sh $(or $(RUNS),5) $(SCENARIOS)
+chaos-summary: ## Step 9: results table from chaos/results/<date>: make chaos-summary DATE=2026-11-02
+	@python3 chaos/summarize.py chaos/results/$(or $(DATE),$$(date -u +%F))
+
 .PHONY: audit-log
 audit-log: ## The last audit events (diagnoses and decisions) from the append-only audit DB
 	@kubectl -n aiops exec audit-db-0 -- psql -U audit_admin -d audit -c \

@@ -25,6 +25,7 @@ from .audit import (
     PostgresAudit,
     decision_row,
     diagnosis_row,
+    opened_row,
     resolved_row,
     verify_row,
 )
@@ -212,6 +213,8 @@ async def follow_approval(
 
 
 LIVE = (ActionStatus.READY, ActionStatus.AWAITING_APPROVAL)
+# An accepted-but-undiagnosed incident older than this is history: not investigated at start-up.
+REINVESTIGATE_WITHIN = timedelta(hours=2)
 
 
 async def decide_and_audit(
@@ -330,12 +333,40 @@ def create_app(
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         if audit is not None:
             # A restart must not forget open incidents (or pay to investigate them twice).
+            now = datetime.now(UTC)
             for incident in restore(await audit.recent(settings.restore_hours), grouper):
                 if incident.decision and incident.decision.status is ActionStatus.AWAITING_APPROVAL:
                     background(
                         follow_approval(incident, settings, audit, notifier, executor, verifier)
                     )
+                elif (
+                    incident.status is IncidentStatus.OPEN
+                    and incident.diagnosis is None
+                    and now - incident.opened_at < REINVESTIGATE_WITHIN
+                ):
+                    # Accepted, then the process stopped before diagnosing: Alertmanager will
+                    # not send it again, so this is the only chance.
+                    log.info(
+                        "incident %s: accepted but never diagnosed; investigating", incident.id
+                    )
+                    background(
+                        investigate(
+                            incident,
+                            collectors,
+                            settings,
+                            llm,
+                            notifier,
+                            guards,
+                            audit,
+                            executor,
+                            verifier,
+                        )
+                    )
         yield
+        # SIGTERM (a deploy): let running investigations finish, so none is cut off halfway.
+        # Approval waits run for hours; they are resumed after the restart instead.
+        if running:
+            await asyncio.wait(running, timeout=settings.shutdown_grace_seconds)
         for client in clients:
             await client.aclose()
 
@@ -360,6 +391,9 @@ def create_app(
             if result.outcome is Outcome.NEW_INCIDENT and result.incident is not None:
                 new_incidents.append(result.incident.id)
                 log.info("incident opened: %s", result.incident.id)
+                if audit is not None:
+                    # Recorded before Alertmanager gets its 200 (see audit.opened_row).
+                    await audit.write(result.incident, opened_row(result.incident))
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
                 background(
                     investigate(

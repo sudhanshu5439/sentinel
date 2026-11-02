@@ -28,7 +28,8 @@ pf_stop() { kill "${PF:-0}" 2>/dev/null; }
 fingerprint="eval-$scenario-$run-$(date +%s)"
 
 webhook() { # status alertname slo
-  curl -sf -X POST localhost:18010/webhook/alertmanager -H 'content-type: application/json' -d @- <<EOF
+  # -sS --fail-with-body: an HTTP error is printed, not swallowed (the pilot lost a run that way).
+  curl -sS --fail-with-body -X POST localhost:18010/webhook/alertmanager -H 'content-type: application/json' -d @- <<EOF
 {"version":"4","status":"$1","alerts":[{"status":"$1",
  "labels":{"alertname":"$2","service":"order-api","namespace":"$NS","severity":"critical","slo":"$3"},
  "annotations":{"summary":"order-api is burning its error budget in $NS"},
@@ -98,6 +99,24 @@ db_run() {
   T_PLATFORM=""; PLATFORM_PHASE=""; PLATFORM_MSG=""; ALERT_PATH=prometheus-alertmanager
 }
 
+wait_clean() {
+  # Pilot lesson: a leftover alert from the previous run opened an incident, and this run's alert
+  # joined it (grouping working as designed) instead of starting its own investigation.
+  for _ in $(seq 1 60); do
+    alerts=$(kubectl -n monitoring exec alertmanager-kps-alertmanager-0 -c alertmanager -- \
+      wget -qO- http://localhost:9093/api/v2/alerts 2>/dev/null |
+      jq '[.[] | select(.labels.namespace=="sentinel-staging" and .status.state=="active")] | length')
+    pf_start; open=$(curl -s localhost:18010/incidents |
+      jq '[.[] | select(.namespace=="sentinel-staging" and .status=="open")] | length'); pf_stop
+    [ "${alerts:-1}" = 0 ] && [ "${open:-1}" = 0 ] && [ "$(phase)" = Healthy ] && return 0
+    echo "waiting for a clean start: $alerts active alerts, $open open incidents, $(phase)" >&2
+    sleep 20
+  done
+  echo "staging never got clean; running anyway (recorded)" >&2; DIRTY_START=true
+}
+DIRTY_START=false
+[ "$scenario" != unsigned-image ] && wait_clean
+
 case "$scenario" in
   bad-release-errors)  canary_run bad 0.3 OrderApiAvailabilityBudgetBurnFast order-api-availability
                        EXPECT_CAT='["config_change","bad_release"]'; EXPECT_ACT='["abort_canary"]' ;;
@@ -118,15 +137,23 @@ case "$scenario" in
   *) echo "unknown scenario: $scenario" >&2; exit 2 ;;
 esac
 
+if [ "$(echo "$INCIDENT" | jq -r '.id // empty')" = "" ]; then
+  # Recorded as a failed run, not skipped: a missing incident is a result too.
+  jq -n --arg s "$scenario" --argjson r "$run" --arg t "$T_INJECT" --arg path "$ALERT_PATH" \
+    '{scenario:$s, run:$r, injected_at:$t, alert_path:$path, error:"no incident was diagnosed and notified"}' \
+    > "$OUT/$scenario-$run.json"
+  echo "$scenario $run: NO INCIDENT" >&2; exit 1
+fi
+
 echo "$INCIDENT" | jq \
-  --arg s "$scenario" --argjson r "$run" --arg path "$ALERT_PATH" \
+  --arg s "$scenario" --argjson r "$run" --arg path "$ALERT_PATH" --argjson dirty "$DIRTY_START" \
   --arg t_inject "$T_INJECT" --arg t_alert "${T_ALERT:-}" --arg t_platform "${T_PLATFORM:-}" \
   --arg platform_phase "${PLATFORM_PHASE:-}" --arg platform_msg "${PLATFORM_MSG:-}" \
   --argjson expect_cat "$EXPECT_CAT" --argjson expect_act "$EXPECT_ACT" '
   def ts: if . == null or . == "" then null else sub("\\.[0-9]+"; "") | sub("\\+00:00$"; "Z") | fromdateiso8601 end;
   (.diagnosis.diagnosis // {}) as $d | (.decision // {}) as $a |
   {
-    scenario: $s, run: $r, alert_path: $path, incident: .id,
+    scenario: $s, run: $r, alert_path: $path, dirty_start: $dirty, incident: .id,
     injected_at: $t_inject, alert_at: $t_alert, decided_at: $a.decided_at, notified_at: .notified_at,
     seconds_inject_to_alert: (($t_alert | ts) - ($t_inject | ts)),
     seconds_alert_to_slack: ((.notified_at | ts) - ($t_alert | ts)),
