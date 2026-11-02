@@ -68,15 +68,24 @@ def rebuild(rows: list[dict[str, Any]]) -> list[Incident]:
             elif iid in incidents and event in ("decision", "action", "approval"):
                 incidents[iid].decision = Decision.model_validate(payload)
             elif iid in incidents and event == "resolved":
+                # Rebuilt through model_validate, not by attribute assignment: pydantic does
+                # not validate assignments, so a JSON timestamp would stay a str and the next
+                # alert for this service crashed the webhook (found by the Step 9 pilot).
                 incident = incidents[iid]
                 meta = payload.get("incident") or {}
+                alerts = dict(incident.alerts)
                 for a in payload.get("alerts", []):
                     record = AlertRecord.model_validate(a)
-                    incident.alerts[record.fingerprint] = record
-                incident.status = IncidentStatus.RESOLVED
-                incident.resolved_at = meta.get("resolved_at") or row.get("at")
-                incident.last_activity_at = (
-                    meta.get("last_activity_at") or incident.last_activity_at
+                    alerts[record.fingerprint] = record
+                incidents[iid] = Incident.model_validate(
+                    {
+                        **dict(incident),
+                        "alerts": alerts,
+                        "status": IncidentStatus.RESOLVED,
+                        "resolved_at": meta.get("resolved_at") or row.get("at"),
+                        "last_activity_at": meta.get("last_activity_at")
+                        or incident.last_activity_at,
+                    }
                 )
         except (ValidationError, KeyError, TypeError, ValueError) as exc:
             log.warning("audit row for %s (%s) not restored: %r", iid, event, exc)

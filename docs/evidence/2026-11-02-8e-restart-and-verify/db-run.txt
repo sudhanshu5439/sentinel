@@ -1,0 +1,35 @@
+05:31:16 BREAK: ALTER TABLE
+05:31:19 alerts: none  decisions: 0
+05:31:39 alerts: none  decisions: 0
+05:31:59 alerts: none  decisions: 0
+05:32:20 alerts: none  decisions: 0
+05:32:40 alerts: none  decisions: 0
+05:33:01 alerts: none  decisions: 0
+05:33:22 alerts: none  decisions: 0
+05:33:42 alerts: none  decisions: 0
+05:34:03 alerts: none  decisions: 0
+05:34:23 alerts: none  decisions: 0
+05:34:44 alerts: none  decisions: 0
+05:35:04 alerts: none  decisions: 0
+05:35:25 alerts: OrderApiAvailabilityBudgetBurnFast=active  decisions: 0
+05:35:46 alerts: OrderApiAvailabilityBudgetBurnFast=active  decisions: 0
+05:36:07 alerts: OrderApiAvailabilityBudgetBurnFast=active  decisions: 1
+05:36:07 RESTORE: ALTER TABLE
+incident 20261102T053538Z-sentinel-staging-order-api
+diagnosis: diagnosed dependency/medium attempts=1 cost=$0.000798
+summary:   order-api returns HTTP 500 on POST /orders because Postgres reports relation "orders" does not exist. No workload or config change preceded the incident, so the likely cause is the database schema or the database target, not a release.
+cause:     order-api's queries fail because the "orders" table is missing in the Postgres database it connects to, which produces the 500s on POST /orders. ["E14","E15","E13","E12"]
+decision:  notify tier 0 notify_only target={}
+  - dependency: rolling back or reverting our own change would not fix it; evidence goes to a human
+audited=true slack=true
+ id |              at               |   event   |  category  | confidence | action | tier |   status    |    prompt_sha    |     pack_sha     | cost_usd 
+----+-------------------------------+-----------+------------+------------+--------+------+-------------+------------------+------------------+----------
+ 11 | 2026-11-02 05:35:46.163732+00 | diagnosis | dependency | medium     |        |      | diagnosed   | 2e4a70a8ca301bb4 | 1042e71ba30297a6 | 0.000798
+ 12 | 2026-11-02 05:35:46.187338+00 | decision  | dependency | medium     | notify |    0 | notify_only | 2e4a70a8ca301bb4 | 1042e71ba30297a6 |         
+(2 rows)
+
+2026-11-02T05:35:38+0000  incident opened: 20261102T053538Z-sentinel-staging-order-api
+2026-11-02T05:35:38+0000  incident 20261102T053538Z-sentinel-staging-order-api: 214 evidence items -> pack of 15 (~591 tokens, dropped none)
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: diagnosis diagnosed dependency/medium (1 attempts, 2645+1067 tokens, $0.0008)
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: decision notify tier 0 notify_only
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: posted to Slack

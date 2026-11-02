@@ -1,0 +1,6 @@
+ id |              at               |   event   |  category  | confidence | action | tier |   status    |    prompt_sha    |     pack_sha     | cost_usd 
+----+-------------------------------+-----------+------------+------------+--------+------+-------------+------------------+------------------+----------
+ 11 | 2026-11-02 05:35:46.163732+00 | diagnosis | dependency | medium     |        |      | diagnosed   | 2e4a70a8ca301bb4 | 1042e71ba30297a6 | 0.000798
+ 12 | 2026-11-02 05:35:46.187338+00 | decision  | dependency | medium     | notify |    0 | notify_only | 2e4a70a8ca301bb4 | 1042e71ba30297a6 |         
+(2 rows)
+

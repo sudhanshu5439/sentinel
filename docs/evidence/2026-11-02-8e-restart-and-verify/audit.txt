@@ -1,0 +1,7 @@
+ id |              at               |   event   |  category  | action |   status    
+----+-------------------------------+-----------+------------+--------+-------------
+ 11 | 2026-11-02 05:35:46.163732+00 | diagnosis | dependency |        | diagnosed
+ 12 | 2026-11-02 05:35:46.187338+00 | decision  | dependency | notify | notify_only
+ 13 | 2026-11-02 05:45:38.56575+00  | resolved  |            |        | resolved
+(3 rows)
+

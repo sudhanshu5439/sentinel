@@ -1,0 +1,5 @@
+2026-11-02T05:35:38+0000  incident opened: 20261102T053538Z-sentinel-staging-order-api
+2026-11-02T05:35:38+0000  incident 20261102T053538Z-sentinel-staging-order-api: 214 evidence items -> pack of 15 (~591 tokens, dropped none)
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: diagnosis diagnosed dependency/medium (1 attempts, 2645+1067 tokens, $0.0008)
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: decision notify tier 0 notify_only
+2026-11-02T05:35:46+0000  incident 20261102T053538Z-sentinel-staging-order-api: posted to Slack

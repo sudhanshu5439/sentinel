@@ -52,10 +52,16 @@ def test_after_a_restart_resolved_alerts_still_close_their_incident(clock):
     assert grouper.get(incident_id).status is IncidentStatus.RESOLVED
     assert audit.rows[-1]["event"] == "resolved"
 
-    # A third start knows the incident is over.
-    grouper, third = app(clock, audit)
-    with TestClient(third):
-        assert grouper.get(incident_id).status is IncidentStatus.RESOLVED
+    # A third start knows the incident is over, and the next alert for the same service is
+    # handled. Regression: restored timestamps stayed strings and this webhook crashed (500).
+    clock.advance(30)
+    grouper, third = app(clock, audit, FakeLLM(HONEST))
+    with TestClient(third) as c:
+        restored = grouper.get(incident_id)
+        assert restored.status is IncidentStatus.RESOLVED
+        assert isinstance(restored.last_activity_at, type(clock())) and restored.resolved_at
+        r = c.post("/webhook/alertmanager", json=payload(make_alert(namespace="sentinel-staging")))
+        assert r.status_code == 200 and len(r.json()["new_incidents"]) == 1
 
 
 def test_rows_that_do_not_parse_are_skipped_not_fatal(clock):

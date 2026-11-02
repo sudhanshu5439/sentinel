@@ -139,7 +139,10 @@ aiops-secrets: ## Create/refresh the assistant's and audit DB's Secrets from .en
 	  kubectl -n aiops create secret generic audit-db \
 	    --from-file="$$tmp/POSTGRES_PASSWORD" --from-file="$$tmp/ASSISTANT_PASSWORD" \
 	    --from-file="$$tmp/GRAFANA_PASSWORD" \
-	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/audit-db up to date"
+	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret aiops/audit-db up to date"; \
+	  printf '%s' "$$AUDIT_DB_GRAFANA_PASSWORD" > "$$tmp/password"; \
+	  kubectl -n monitoring create secret generic audit-db-grafana --from-file="$$tmp/password" \
+	    --dry-run=client -o yaml | kubectl apply -f - >/dev/null && echo "secret monitoring/audit-db-grafana up to date"
 
 .PHONY: aiops-status
 aiops-status: ## Assistant health, recent pipeline log lines and the last incidents (in-cluster)
