@@ -1,0 +1,40 @@
+{
+  "scenario": "bad-release-latency",
+  "run": 3,
+  "alert_path": "handed-to-webhook",
+  "dirty_start": false,
+  "incident": "20261102T104532Z-sentinel-staging-order-api",
+  "injected_at": "2026-11-02T10:44:40Z",
+  "alert_at": "2026-11-02T10:45:32Z",
+  "decided_at": "2026-11-02T10:45:45.642512Z",
+  "notified_at": "2026-11-02T10:45:46.464197Z",
+  "seconds_inject_to_alert": 52,
+  "seconds_alert_to_slack": 14,
+  "diagnosis_status": "diagnosed",
+  "category": "config_change",
+  "confidence": "medium",
+  "injection_suspected": false,
+  "attempts": 2,
+  "cost_usd": 0.002339,
+  "expected_categories": [
+    "config_change",
+    "bad_release"
+  ],
+  "category_correct": true,
+  "action": "abort_canary",
+  "tier": 1,
+  "action_status": "blocked",
+  "blocked_by": "rate limit: order-api had an action 24 min ago",
+  "result": null,
+  "expected_actions": [
+    "abort_canary"
+  ],
+  "action_correct": true,
+  "harmful": false,
+  "platform_phase": "Degraded",
+  "platform_at": "2026-11-02T10:45:58Z",
+  "platform_message": "RolloutAborted: Rollout aborted update to revision 64: Background analysis phase error/failed: Metric \"latency-p95\" assessed Failed due to failed (2) > failureLimit (1)",
+  "seconds_decision_before_platform": 13,
+  "summary": "order-api in sentinel-staging is burning latency budget. Most recent change is a re-deploy of rollout revision 64 (same image, config changed) with a paused rollout and unhealthy readiness. Earlier revisions were aborted by failed analysis, and injected 500 faults appear in logs.",
+  "cause": "A re-deploy of order-api (same image sentinel-order-api@sha256:0c494392, config changed to order-api-faults-9c7t56265h) at rollout revision 64 coincided with the incident; the rollout is paused and unhealthy, and logs show an injected fault returning 500 on POST /orders."
+}

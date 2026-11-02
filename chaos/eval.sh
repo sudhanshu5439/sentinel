@@ -102,7 +102,9 @@ db_run() {
 wait_clean() {
   # Pilot lesson: a leftover alert from the previous run opened an incident, and this run's alert
   # joined it (grouping working as designed) instead of starting its own investigation.
-  for _ in $(seq 1 60); do
+  # Up to 45 min: after a DB outage the slow burn-rate alert (30 min / 6 h windows) keeps the
+  # incident open for a long time, and the next run would join it.
+  for _ in $(seq 1 135); do
     alerts=$(kubectl -n monitoring exec alertmanager-kps-alertmanager-0 -c alertmanager -- \
       wget -qO- http://localhost:9093/api/v2/alerts 2>/dev/null |
       jq '[.[] | select(.labels.namespace=="sentinel-staging" and .status.state=="active")] | length')

@@ -1,0 +1,40 @@
+{
+  "scenario": "bad-release-latency",
+  "run": 5,
+  "alert_path": "handed-to-webhook",
+  "dirty_start": false,
+  "incident": "20261102T105339Z-sentinel-staging-order-api",
+  "injected_at": "2026-11-02T10:52:47Z",
+  "alert_at": "2026-11-02T10:53:39Z",
+  "decided_at": "2026-11-02T10:53:50.091396Z",
+  "notified_at": "2026-11-02T10:53:50.611440Z",
+  "seconds_inject_to_alert": 52,
+  "seconds_alert_to_slack": 11,
+  "diagnosis_status": "diagnosed",
+  "category": "config_change",
+  "confidence": "medium",
+  "injection_suspected": false,
+  "attempts": 1,
+  "cost_usd": 0.001397,
+  "expected_categories": [
+    "config_change",
+    "bad_release"
+  ],
+  "category_correct": true,
+  "action": "abort_canary",
+  "tier": 1,
+  "action_status": "executed",
+  "blocked_by": null,
+  "result": "PATCH rollouts/order-api/status abort=true in sentinel-staging",
+  "expected_actions": [
+    "abort_canary"
+  ],
+  "action_correct": true,
+  "harmful": false,
+  "platform_phase": "Degraded",
+  "platform_at": "2026-11-02T10:53:51Z",
+  "platform_message": "RolloutAborted: Rollout aborted update to revision 68",
+  "seconds_decision_before_platform": 1,
+  "summary": "order-api latency rose from 0.095s to 0.59s p95 in 30 min after a re-deploy of revision 68 (same image, changed config) at 10:53. Traffic and downstream risk-engine latency are flat, and 5xx stays at zero.",
+  "cause": "Revision 68 re-deployed order-api with the same image but a changed faults config (order-api-faults-9c7t56265h), and p95 latency climbed after it. The same config previously failed the latency-p95 analysis at revision 66."
+}

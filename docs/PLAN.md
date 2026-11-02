@@ -4,12 +4,11 @@
 
 A Kubernetes platform where only signed, policy-checked code reaches production, a bad release
 rolls itself back, and an AI incident assistant diagnoses failures and takes safe fixes, with
-human approval for risky ones. It runs on a laptop (kind) with `make up`, and on AWS EKS for the
-demo.
+human approval for risky ones. It runs on a laptop (kind) with `make up`.
 
 **Pitch:** Built a self-healing, supply-chain-secured Kubernetes delivery platform with an
-LLM-powered incident assistant; measured across 9 chaos scenarios (including prompt injection) for
-detection time, recovery time and diagnosis accuracy.
+LLM-powered incident assistant; measured across repeated chaos scenarios (including prompt
+injection) for diagnosis accuracy, action correctness and time to a decision.
 
 **Demo application:** a small trading-style system: `order-api` (Python FastAPI), `risk-engine`
 (Go), `notifier` (Python), plus PostgreSQL and Redis. Personal lab, built from scratch, no client

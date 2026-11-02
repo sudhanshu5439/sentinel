@@ -296,7 +296,16 @@ diagnosis → 7f Slack + deploy.
     (PostgreSQL plugin re-enabled, password from a Secret). Checked: rows readable, a DELETE
     through Grafana is refused (`permission denied for table audit_events`).
 
-### 9. Chaos evaluation, started
+- **Second restart gap** (`ad9ff42`), also found by the evaluation: a deploy (the Dependabot
+  merges) killed the assistant 60 s into a DB-outage investigation. Alertmanager already had its
+  200 and does not re-send for 12 h, so the incident was lost. Now the webhook writes an `opened`
+  audit row before answering, start-up re-investigates recent undiagnosed incidents, and SIGTERM
+  gives running investigations 20 s.
+- **Gitleaks false positive** after the Dependabot merges: the fake AWS key in the redaction test.
+  The test builds it at runtime now; the old commit's fingerprint is in `.gitleaksignore` with
+  the reason. The scanner stays on.
+
+### 9. Chaos evaluation
 
 - Harness: `chaos/eval.sh <scenario> <run>` (one run, JSON result, staging always put back),
   `chaos/run-all.sh [runs]`, `chaos/summarize.py` (medians and n/N only).
@@ -323,8 +332,9 @@ diagnosis → 7f Slack + deploy.
 - [x] Baselines "n/a": no data an hour earlier (laptop off); window-start fallback (8a)
 - [x] 8b: policy-chosen actions, guards, append-only audit DB, dry-run live runs
 - [x] 8c/8d executors, dry-run verified (real repo + in-cluster)
-- [ ] **Sudhanshu: merge sentinel-gitops PR #19** (actions live in staging only), then a live
-      run: bad release → the assistant aborts the canary before Argo's analysis does
+- [x] sentinel-gitops PR #19 merged by Sudhanshu (2 Nov): actions live in staging only.
+      Checked with `kubectl auth can-i`: patch `rollouts/status` order-api in staging = yes;
+      patch the Rollout spec = no; anything in prod = no
 - [ ] **Sudhanshu: fine-grained GitHub token** for sentinel-gitops only (Contents RW, Pull
       requests RW, Issues RW), added to `.env` as `GITHUB_TOKEN`, then `make aiops-secrets`;
       then a live revert PR run
