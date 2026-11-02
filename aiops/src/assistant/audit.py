@@ -56,11 +56,60 @@ def diagnosis_row(incident: Incident) -> dict[str, Any]:
         "pack_sha256": pack_sha256(incident),
         "cost_usd": d.cost_usd if d else None,
         "payload": {
+            "incident": _meta(incident),
             "alerts": [a.model_dump(mode="json") for a in incident.alerts.values()],
             "pack": incident.pack.model_dump(mode="json") if incident.pack else None,
             "result": d.model_dump(mode="json") if d else None,
         },
     }
+
+
+def resolved_row(incident: Incident) -> dict[str, Any]:
+    """Every alert of the incident resolved. Also what tells a restarted assistant that this
+    incident is over (incidents are rebuilt from the audit log, see restore.py)."""
+    return {
+        "event": "resolved",
+        "category": None,
+        "confidence": None,
+        "status": "resolved",
+        "prompt_sha256": None,
+        "pack_sha256": None,
+        "cost_usd": None,
+        "payload": {
+            "incident": _meta(incident),
+            "alerts": [a.model_dump(mode="json") for a in incident.alerts.values()],
+        },
+    }
+
+
+def verify_row(incident: Incident) -> dict[str, Any]:
+    """8e: what the SLI said after the action. status: recovered | not_recovered | unknown."""
+    v = incident.verification
+    status = (
+        "unknown"
+        if v is None or v.recovered is None
+        else ("recovered" if v.recovered else "not_recovered")
+    )
+    decision = incident.decision
+    return {
+        "event": "verify",
+        "category": None,
+        "confidence": None,
+        "action": str(decision.action) if decision else None,
+        "tier": int(decision.tier) if decision else None,
+        "status": status,
+        "prompt_sha256": None,
+        "pack_sha256": None,
+        "cost_usd": None,
+        "payload": v.model_dump(mode="json") if v else {},
+    }
+
+
+def _meta(incident: Incident) -> dict[str, Any]:
+    return incident.model_dump(
+        mode="json",
+        include={"opened_at", "last_activity_at", "resolved_at", "notifications", "notified_at"},
+    )
 
 
 def decision_row(incident: Incident, decision: Decision, event: str = "decision") -> dict[str, Any]:
@@ -79,8 +128,19 @@ def decision_row(incident: Incident, decision: Decision, event: str = "decision"
     }
 
 
+RESTORE_EVENTS = ("diagnosis", "decision", "action", "approval", "resolved")
+RECENT = """
+SELECT incident_id, namespace, service, event, at, payload FROM audit_events
+WHERE at > now() - make_interval(hours => %(hours)s)
+  AND event IN ('diagnosis', 'decision', 'action', 'approval', 'resolved')
+ORDER BY id
+"""
+
+
 class AuditLog(Protocol):
     async def write(self, incident: Incident, row: dict[str, Any]) -> bool: ...
+
+    async def recent(self, hours: int) -> list[dict[str, Any]]: ...
 
     async def aclose(self) -> None: ...
 
@@ -115,6 +175,21 @@ class PostgresAudit:
             log.error("audit write failed for incident %s (%s): %r", incident.id, row["event"], exc)
             return False
 
+    async def recent(self, hours: int) -> list[dict[str, Any]]:
+        """Rows of the last `hours`, oldest first. [] (and a log line) if the DB is down: the
+        assistant then starts empty, as it did before the audit log existed."""
+        try:
+            if not self._opened:
+                await self._pool.open()
+                self._opened = True
+            async with self._pool.connection() as conn:
+                cur = await conn.execute(RECENT, {"hours": hours})
+                cols = [c.name for c in cur.description or []]
+                return [dict(zip(cols, r, strict=True)) for r in await cur.fetchall()]
+        except Exception as exc:  # noqa: BLE001 - start-up must not fail on this
+            log.error("audit read failed, starting without restored incidents: %r", exc)
+            return []
+
     async def aclose(self) -> None:
         if self._opened:
             await self._pool.close()
@@ -130,8 +205,18 @@ class MemoryAudit:
     async def write(self, incident: Incident, row: dict[str, Any]) -> bool:
         if self.fail:
             return False
-        self.rows.append({"incident_id": incident.id, **row})
+        self.rows.append(
+            {
+                "incident_id": incident.id,
+                "namespace": incident.namespace,
+                "service": incident.service,
+                **row,
+            }
+        )
         return True
+
+    async def recent(self, hours: int) -> list[dict[str, Any]]:
+        return [r for r in self.rows if r["event"] in RESTORE_EVENTS]
 
     async def aclose(self) -> None:
         return None

@@ -20,7 +20,14 @@ import httpx
 from fastapi import FastAPI, HTTPException
 
 from .actions import ActionKind, ActionStatus, Guards, apply_guards, decide
-from .audit import AuditLog, PostgresAudit, decision_row, diagnosis_row
+from .audit import (
+    AuditLog,
+    PostgresAudit,
+    decision_row,
+    diagnosis_row,
+    resolved_row,
+    verify_row,
+)
 from .collectors import Collector, build_collectors, collect_all, kube_client
 from .config import Settings
 from .correlator import correlate, incident_start
@@ -29,9 +36,11 @@ from .evidence import Scope
 from .executor import Executor, GitOpsRepo, RolloutsApi
 from .grouping import IncidentGrouper, Outcome
 from .llm import LLM, AnthropicLLM
-from .models import Incident, WebhookPayload
+from .models import Incident, IncidentStatus, WebhookPayload
 from .notify import SlackNotifier
 from .pack import build_pack
+from .restore import restore
+from .verify import Verifier
 
 log = logging.getLogger("assistant")
 
@@ -74,6 +83,7 @@ async def investigate(
     guards: Guards | None = None,
     audit: AuditLog | None = None,
     executor: Executor | None = None,
+    verifier: Verifier | None = None,
 ) -> None:
     """Collect evidence, score changes, build the pack, ask the LLM (once per incident), decide
     the action by policy, audit, execute (or plan, in dry-run), notify, await approval."""
@@ -144,17 +154,61 @@ async def investigate(
         if incident.notify_error is None:
             incident.notified_at = datetime.now(UTC)
             log.info("incident %s: posted to Slack", incident.id)
-    # Tier 2: the PR is open; a human merging it is the approval. This task waits for it.
-    if executor is not None and decision is not None:
-        changed = await executor.await_approval(
-            decision, settings.approval_poll_seconds, settings.approval_timeout_minutes * 60
+    if decision is not None and decision.status is ActionStatus.EXECUTED:
+        await verify_after(incident, settings, verifier, audit, notifier)
+    await follow_approval(incident, settings, audit, notifier, executor, verifier)
+
+
+async def verify_after(
+    incident: Incident,
+    settings: Settings,
+    verifier: Verifier | None,
+    audit: AuditLog | None,
+    notifier: SlackNotifier | None,
+) -> None:
+    """8e: an executed action is a hypothesis; the SLI says whether it was right."""
+    if verifier is None:
+        return
+    incident.verification = await verifier.watch(
+        incident.namespace,
+        incident.service,
+        settings.verify_poll_seconds,
+        settings.verify_timeout_minutes * 60,
+    )
+    text = incident.verification.describe()
+    log.info("incident %s: after the action: %s", incident.id, text)
+    if audit is not None:
+        await audit.write(incident, verify_row(incident))
+    if notifier is not None:
+        await notifier.send_update(
+            incident, text if incident.verification.recovered else f":rotating_light: {text}"
         )
-        if changed:
-            log.info("incident %s: approval %s: %s", incident.id, decision.status, decision.result)
-            if audit is not None:
-                await audit.write(incident, decision_row(incident, decision, event="approval"))
-            if notifier is not None:
-                await notifier.send_update(incident, decision.result or "")
+
+
+async def follow_approval(
+    incident: Incident,
+    settings: Settings,
+    audit: AuditLog | None,
+    notifier: SlackNotifier | None,
+    executor: Executor | None,
+    verifier: Verifier | None = None,
+) -> None:
+    """Tier 2: the PR is open; a human merging it is the approval. Wait for it (also resumed
+    after a restart for incidents restored from the audit log)."""
+    decision = incident.decision
+    if executor is None or decision is None:
+        return
+    changed = await executor.await_approval(
+        decision, settings.approval_poll_seconds, settings.approval_timeout_minutes * 60
+    )
+    if changed:
+        log.info("incident %s: approval %s: %s", incident.id, decision.status, decision.result)
+        if audit is not None:
+            await audit.write(incident, decision_row(incident, decision, event="approval"))
+        if notifier is not None:
+            await notifier.send_update(incident, decision.result or "")
+        if decision.status is ActionStatus.APPROVED:  # merged: Argo CD syncs it, then check
+            await verify_after(incident, settings, verifier, audit, notifier)
 
 
 LIVE = (ActionStatus.READY, ActionStatus.AWAITING_APPROVAL)
@@ -224,6 +278,7 @@ def create_app(
     notifier: SlackNotifier | None = None,
     audit: AuditLog | None = None,
     executor: Executor | None = None,
+    verifier: Verifier | None = None,
 ) -> FastAPI:
     """App factory: real dependencies by default, fakes injected by tests."""
     settings = settings or Settings.from_env()
@@ -252,6 +307,10 @@ def create_app(
             GitOpsRepo(github, settings.gitops_repo, settings.github_token),
             RolloutsApi(kube, settings.kube_api_url) if kube else None,
         )
+    if verifier is None and settings.prometheus_url:
+        prom = httpx.AsyncClient(timeout=httpx.Timeout(10.0))
+        clients.append(prom)
+        verifier = Verifier(prom, settings.prometheus_url)
     # One set of guards for the process: rate limits count across incidents.
     guards = Guards(
         settings.allowed_namespaces,
@@ -261,8 +320,21 @@ def create_app(
     # Strong references: the event loop only keeps weak ones, so an unreferenced task can vanish.
     running: set[asyncio.Task[None]] = set()
 
+    def background(coro) -> None:
+        task = asyncio.create_task(coro)
+        running.add(task)
+        task.add_done_callback(running.discard)
+        task.add_done_callback(_log_failure)
+
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        if audit is not None:
+            # A restart must not forget open incidents (or pay to investigate them twice).
+            for incident in restore(await audit.recent(settings.restore_hours), grouper):
+                if incident.decision and incident.decision.status is ActionStatus.AWAITING_APPROVAL:
+                    background(
+                        follow_approval(incident, settings, audit, notifier, executor, verifier)
+                    )
         yield
         for client in clients:
             await client.aclose()
@@ -289,7 +361,7 @@ def create_app(
                 new_incidents.append(result.incident.id)
                 log.info("incident opened: %s", result.incident.id)
                 # Answer Alertmanager now; investigating takes seconds and must not block it.
-                task = asyncio.create_task(
+                background(
                     investigate(
                         result.incident,
                         collectors,
@@ -299,12 +371,18 @@ def create_app(
                         guards,
                         audit,
                         executor,
+                        verifier,
                     )
                 )
-                running.add(task)
-                task.add_done_callback(running.discard)
-                task.add_done_callback(_log_failure)
             else:
+                incident = result.incident
+                if (
+                    result.outcome is Outcome.RESOLVED
+                    and incident is not None
+                    and incident.status is IncidentStatus.RESOLVED
+                    and audit is not None
+                ):
+                    background(audit.write(incident, resolved_row(incident)))
                 log.info(
                     "alert %s %s: %s",
                     alert.labels.get("alertname", "?"),

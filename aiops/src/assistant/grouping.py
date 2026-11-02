@@ -92,6 +92,14 @@ class IncidentGrouper:
         incident.resolved_at = None
         return GroupResult(Outcome.JOINED, incident)
 
+    def restore(self, incident: Incident) -> None:
+        """Put back an incident rebuilt from the audit log after a restart (oldest first)."""
+        self._incidents[incident.id] = incident
+        key = (incident.namespace, incident.service)
+        latest = self._incidents.get(self._latest.get(key, ""))
+        if latest is None or latest.opened_at <= incident.opened_at:
+            self._latest[key] = incident.id
+
     def list(self) -> list[Incident]:
         return list(reversed(self._incidents.values()))  # newest first
 

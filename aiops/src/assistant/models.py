@@ -14,6 +14,7 @@ from .actions import Decision
 from .diagnosis import DiagnosisResult
 from .evidence import Evidence
 from .pack import EvidencePack
+from .verify import Verification
 
 
 class Alert(BaseModel):
@@ -85,3 +86,5 @@ class Incident(BaseModel):
     decision: Decision | None = None
     # False when an audit write failed (which also blocks any live action).
     audited: bool | None = None
+    # 8e: after an executed or approved action, did the SLI recover?
+    verification: Verification | None = None

@@ -60,6 +60,12 @@ class Settings:
     # Tier 2: how often to check whether a human merged (approved) or closed (rejected) the PR.
     approval_poll_seconds: float = 60.0
     approval_timeout_minutes: int = 120
+    # Incidents rebuilt from the audit log at start-up. Alertmanager's repeat_interval is 12 h:
+    # anything older would come back as a new notification anyway.
+    restore_hours: int = 24
+    # 8e: after an action, watch the service's 5xx ratio this long before escalating.
+    verify_poll_seconds: float = 30.0
+    verify_timeout_minutes: int = 10
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -101,6 +107,9 @@ class Settings:
             github_token=os.getenv("GITHUB_TOKEN") or None,
             approval_poll_seconds=max(float(os.getenv("APPROVAL_POLL_SECONDS", "60")), 5.0),
             approval_timeout_minutes=max(int(os.getenv("APPROVAL_TIMEOUT_MINUTES", "120")), 1),
+            restore_hours=min(max(int(os.getenv("RESTORE_HOURS", "24")), 0), 168),
+            verify_poll_seconds=max(float(os.getenv("VERIFY_POLL_SECONDS", "30")), 5.0),
+            verify_timeout_minutes=max(int(os.getenv("VERIFY_TIMEOUT_MINUTES", "10")), 1),
         )
 
     def kill_switch_engaged(self) -> bool:
