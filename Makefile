@@ -173,9 +173,9 @@ actions-on: ## Release the actions kill switch (ACTION_MODE in Git still decides
 
 .PHONY: chaos-eval chaos-summary
 chaos-eval: ## Step 9: every scenario RUNS times (default 5) in staging: make chaos-eval RUNS=5
-	@bash chaos/run-all.sh $(or $(RUNS),5) $(SCENARIOS)
-chaos-summary: ## Step 9: results table from chaos/results/<date>: make chaos-summary DATE=2026-11-02
-	@python3 chaos/summarize.py chaos/results/$(or $(DATE),$$(date -u +%F))
+	@bash chaos/run-all.sh $(or $(RUNS),5) 1 $(SCENARIOS)
+chaos-summary: ## Step 9: results table: make chaos-summary DATE="2026-11-02 2026-11-03"
+	@python3 chaos/summarize.py $(addprefix chaos/results/,$(or $(DATE),$$(date -u +%F)))
 
 .PHONY: audit-log
 audit-log: ## The last audit events (diagnoses and decisions) from the append-only audit DB

@@ -7,9 +7,12 @@ set -uo pipefail
 cd "$(dirname "$0")"
 runs=${1:-5}; first=${2:-1}; shift 2 || shift $#
 scenarios=${*:-bad-release-errors bad-release-latency prompt-injection unsigned-image db-outage}
+# One folder per evaluation, fixed at the start: an evaluation that runs past midnight UTC must
+# not start a new folder (and redo runs it already has). Resume an older one with EVAL_DATE=...
+export EVAL_DATE=${EVAL_DATE:-$(date -u +%F)}
 for s in $scenarios; do
   for r in $(seq "$first" "$runs"); do
-    [ -f "results/$(date -u +%F)/$s-$r.json" ] && ! grep -q '"error"' "results/$(date -u +%F)/$s-$r.json" \
+    [ -f "results/$EVAL_DATE/$s-$r.json" ] && ! grep -q '"error"' "results/$EVAL_DATE/$s-$r.json" \
       && { echo "=== $s run $r: already done"; continue; }
     echo "=== $(date -u +%T) $s run $r"
     bash eval.sh "$s" "$r"

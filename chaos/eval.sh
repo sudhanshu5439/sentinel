@@ -17,7 +17,7 @@ set -uo pipefail
 scenario=${1:?scenario}
 run=${2:?run number}
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-OUT="$ROOT/chaos/results/$(date -u +%F)"
+OUT="$ROOT/chaos/results/${EVAL_DATE:-$(date -u +%F)}"
 mkdir -p "$OUT"
 NS=sentinel-staging
 now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
