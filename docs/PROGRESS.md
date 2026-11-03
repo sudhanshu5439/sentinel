@@ -296,7 +296,16 @@ diagnosis → 7f Slack + deploy.
     (PostgreSQL plugin re-enabled, password from a Secret). Checked: rows readable, a DELETE
     through Grafana is refused (`permission denied for table audit_events`).
 
-### 9. Chaos evaluation, started
+- **Second restart gap** (`ad9ff42`), also found by the evaluation: a deploy (the Dependabot
+  merges) killed the assistant 60 s into a DB-outage investigation. Alertmanager already had its
+  200 and does not re-send for 12 h, so the incident was lost. Now the webhook writes an `opened`
+  audit row before answering, start-up re-investigates recent undiagnosed incidents, and SIGTERM
+  gives running investigations 20 s.
+- **Gitleaks false positive** after the Dependabot merges: the fake AWS key in the redaction test.
+  The test builds it at runtime now; the old commit's fingerprint is in `.gitleaksignore` with
+  the reason. The scanner stays on.
+
+### 9. Chaos evaluation
 
 - Harness: `chaos/eval.sh <scenario> <run>` (one run, JSON result, staging always put back),
   `chaos/run-all.sh [runs]`, `chaos/summarize.py` (medians and n/N only).
@@ -306,9 +315,23 @@ diagnosis → 7f Slack + deploy.
   (overlay patch), traffic surge.
 - Evaluation setting: incident window 2 min (gitops PR #20), so runs do not join each other.
   Revert after the evaluation.
-- With actions in dry-run, MTTR "assistant on vs off" cannot be measured yet. What is measured:
-  diagnosis and action correctness, harmful actions, injection flagged, alert → Slack time, and
-  for canaries how far the assistant's decision came before Argo Rollouts' own abort.
+- What is measured: diagnosis and action correctness, harmful actions, injection flagged,
+  alert → Slack time, and for canaries how far the assistant's decision came before Argo
+  Rollouts' own abort. MTTR "assistant on vs off" is not measured: Argo's analysis aborts a bad
+  canary by itself, so both arms would mostly measure Argo.
+- **Results (2–3 Nov, 26 runs, live in staging, no dirty starts):** 21/21 categories correct,
+  20/21 actions correct, 0 harmful actions, 5/5 unsigned images denied at admission. Injection
+  flagged by the model in only 1/5 runs, yet the injected commands never ran (policy and cluster
+  facts choose actions). Most aborts were blocked by the 30-min cool-down because runs are minutes
+  apart; 2 executed. DB outage on the real alert path: fault → alert median 201.5 s.
+  Details: `chaos/results/README.md`.
+- Harness lessons: a leftover open incident swallows the next run (`wait_clean`, up to 45 min,
+  because a DB outage keeps the slow-burn alert firing); run scenario-major so the cool-down only
+  hits repeats; resumable runs (skip finished, redo errored). The date rolled over mid-run, so
+  `run-all.sh` looked in a new folder and redid db-outage run 1: 6 runs reported, not 5. Fixed:
+  the folder (`EVAL_DATE`) is fixed when `run-all.sh` starts.
+- Cluster outage mid-run (laptop sleep hung the WSL VM): `wsl --shutdown`, restart the kind
+  containers; the assistant rebuilt its incidents from the audit log on start.
 
 ## Next
 
@@ -323,15 +346,20 @@ diagnosis → 7f Slack + deploy.
 - [x] Baselines "n/a": no data an hour earlier (laptop off); window-start fallback (8a)
 - [x] 8b: policy-chosen actions, guards, append-only audit DB, dry-run live runs
 - [x] 8c/8d executors, dry-run verified (real repo + in-cluster)
-- [ ] **Sudhanshu: merge sentinel-gitops PR #19** (actions live in staging only), then a live
-      run: bad release → the assistant aborts the canary before Argo's analysis does
+- [x] sentinel-gitops PR #19 merged by Sudhanshu (2 Nov): actions live in staging only.
+      Checked with `kubectl auth can-i`: patch `rollouts/status` order-api in staging = yes;
+      patch the Rollout spec = no; anything in prod = no
 - [ ] **Sudhanshu: fine-grained GitHub token** for sentinel-gitops only (Contents RW, Pull
       requests RW, Issues RW), added to `.env` as `GITHUB_TOKEN`, then `make aiops-secrets`;
       then a live revert PR run
 - [x] 8e: verify after an action, incidents survive a restart, Grafana audit dashboard
 - [ ] Postmortem draft as a GitHub issue (needs the GitHub token)
-- [ ] Step 9: 5 runs per scenario; Chaos Mesh for memory leak + network latency; bad Redis
-      config; traffic surge; then revert the 2-min eval window (gitops PR #20)
+- [x] Step 9: 5 runs per scenario (26 runs, results in `chaos/results/`)
+- [ ] Revert the 2-min eval window (gitops PR #20): PR opened, Sudhanshu merges
+- [ ] More scenarios, optional: memory leak + network latency (Chaos Mesh), bad Redis config,
+      traffic surge
+- [ ] Repo hygiene PRs to merge (Sudhanshu): sentinel #4 (LICENSE, SECURITY.md), #5 (this),
+      sentinel-gitops #23 (LICENSE); then tag `v1.0.0`
 - [ ] Slack screenshot of the run-3 diagnosis for the README (Sudhanshu; the message holds no
       secrets, but check before committing)
 - [ ] Delete the stopped pre-GitOps namespace when sure: `kubectl delete namespace sentinel`
@@ -370,3 +398,5 @@ diagnosis → 7f Slack + deploy.
 | 30 Oct 2026 | 7f: Slack app via API, notifier, signed image via CI, aiops namespace + read-only RBAC + Alertmanager route; 3 live runs found 2 bugs (notifier never wired, unlabelled error logs missed), both fixed; final run diagnosed the DB failure correctly | Step 8 guarded actions |
 | 30 Oct 2026 | 8a traceback/baseline fixes; 8b action policy + guards + append-only audit DB (PR #18) in dry-run; 3 live runs: canary abort proposed correctly, a stale aborted canary blamed (tier 2, nothing done) → liveness facts fixed it, rerun correct; citation enum in the schema | 8c/8d executors (needs a GitHub token) |
 | 30 Oct 2026 | 8c/8d executors (abort via status subresource, revert PRs where the merge is the approval); dry-run checked against the real gitops history and in-cluster; PR #19 (live in staging) opened | Sudhanshu merges #19; GitHub token; live runs; 8e |
+| 2 Nov 2026 | 8e verify + restart safety (opened row, re-investigate, drain); #19 merged (live in staging); Grafana audit dashboard; chaos harness; cluster outage recovered; GitHub hardening (secret scanning + push protection, private vuln reporting, protected `main`) | 5-run evaluation |
+| 3 Nov 2026 | Step 9 evaluation finished: 26 runs, 20/21 actions correct, 0 harmful; results README | Merge PRs, revert eval window, `v1.0.0`, decision notes |

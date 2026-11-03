@@ -1,7 +1,7 @@
 {
   "scenario": "unsigned-image",
   "run": 1,
-  "injected_at": "2026-11-02T06:20:49Z",
+  "injected_at": "2026-11-02T07:20:34Z",
   "assistant_involved": false,
   "blocked_at_admission": true,
   "policy_test_output": [

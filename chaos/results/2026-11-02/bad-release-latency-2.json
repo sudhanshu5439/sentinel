@@ -1,0 +1,40 @@
+{
+  "scenario": "bad-release-latency",
+  "run": 2,
+  "alert_path": "handed-to-webhook",
+  "dirty_start": false,
+  "incident": "20261102T104125Z-sentinel-staging-order-api",
+  "injected_at": "2026-11-02T10:40:33Z",
+  "alert_at": "2026-11-02T10:41:25Z",
+  "decided_at": "2026-11-02T10:41:32.707469Z",
+  "notified_at": "2026-11-02T10:41:33.325055Z",
+  "seconds_inject_to_alert": 52,
+  "seconds_alert_to_slack": 8,
+  "diagnosis_status": "diagnosed",
+  "category": "bad_release",
+  "confidence": "medium",
+  "injection_suspected": false,
+  "attempts": 1,
+  "cost_usd": 0.001056,
+  "expected_categories": [
+    "config_change",
+    "bad_release"
+  ],
+  "category_correct": true,
+  "action": "abort_canary",
+  "tier": 1,
+  "action_status": "blocked",
+  "blocked_by": "rate limit: order-api had an action 20 min ago",
+  "result": null,
+  "expected_actions": [
+    "abort_canary"
+  ],
+  "action_correct": true,
+  "harmful": false,
+  "platform_phase": "Degraded",
+  "platform_at": "2026-11-02T10:41:55Z",
+  "platform_message": "RolloutAborted: Rollout aborted update to revision 62: Background analysis phase error/failed: Metric \"latency-p95\" assessed Failed due to failed (2) > failureLimit (1)",
+  "seconds_decision_before_platform": 23,
+  "summary": "order-api in sentinel-staging is returning injected 500s after rollout revision 60 was aborted by a failed error-rate analysis; the fault config was re-applied via Argo CD sync and redeploy at 10:40, with repeated restarts and pod failures.",
+  "cause": "A re-deployed revision of Rollout order-api (rev 62, config order-api-faults-9c7t56265h) right before the incident is the likely trigger; the logs show the service deliberately returning injected 500 errors, and the earlier revision 60 was aborted for failing its error-rate analysis."
+}

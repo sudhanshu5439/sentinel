@@ -1,0 +1,20 @@
+{
+  "scenario": "unsigned-image",
+  "run": 2,
+  "injected_at": "2026-11-02T11:12:44Z",
+  "assistant_involved": false,
+  "blocked_at_admission": true,
+  "policy_test_output": [
+    "==> Image from Docker Hub",
+    "    image: nginx:1.27",
+    "    REFUSED (expected): Error from server: admission webhook \"vpol.validate.kyverno.svc-fail\" denied the request: Policy restrict-registries failed: image not allowed in this namespace: nginx:1.27 ",
+    "==> Sentinel image by tag, not digest",
+    "    image: ghcr.io/sudhanshu5439/sentinel-order-api:main",
+    "    REFUSED (expected): Error from server: admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-verify-sentinel-images\" denied the request: Policy verify-sentinel-images failed: image ghcr.io/sudhanshu5439/sentinel-order-api:main does",
+    "==> Image built on the laptop (unsigned)",
+    "    image: sentinel-order-api:dev",
+    "    REFUSED (expected): Error from server: admission webhook \"vpol.validate.kyverno.svc-fail\" denied the request: Policy restrict-registries failed: image not allowed in this namespace: sentinel-order-api:dev ",
+    "",
+    "refused: 3   unexpectedly allowed: 0"
+  ]
+}

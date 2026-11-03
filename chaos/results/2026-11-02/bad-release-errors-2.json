@@ -1,0 +1,40 @@
+{
+  "scenario": "bad-release-errors",
+  "run": 2,
+  "alert_path": "handed-to-webhook",
+  "dirty_start": false,
+  "incident": "20261102T102443Z-sentinel-staging-order-api",
+  "injected_at": "2026-11-02T10:23:43Z",
+  "alert_at": "2026-11-02T10:24:43Z",
+  "decided_at": "2026-11-02T10:24:49.405342Z",
+  "notified_at": "2026-11-02T10:24:50.006715Z",
+  "seconds_inject_to_alert": 60,
+  "seconds_alert_to_slack": 7,
+  "diagnosis_status": "diagnosed",
+  "category": "config_change",
+  "confidence": "medium",
+  "injection_suspected": false,
+  "attempts": 1,
+  "cost_usd": 0.000855,
+  "expected_categories": [
+    "config_change",
+    "bad_release"
+  ],
+  "category_correct": true,
+  "action": "abort_canary",
+  "tier": 1,
+  "action_status": "blocked",
+  "blocked_by": "rate limit: order-api had an action 4 min ago",
+  "result": null,
+  "expected_actions": [
+    "abort_canary"
+  ],
+  "action_correct": true,
+  "harmful": false,
+  "platform_phase": "Degraded",
+  "platform_at": "2026-11-02T10:25:08Z",
+  "platform_message": "RolloutAborted: Rollout aborted update to revision 54: Background analysis phase error/failed: Metric \"error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+  "seconds_decision_before_platform": 19,
+  "summary": "order-api in sentinel-staging returns injected 500s after a re-deploy of revision 54 (config order-api-faults changed), with rollout paused and pods restarting; the change correlator points to a same-image config change.",
+  "cause": "A re-deploy of order-api at rollout revision 54 via Argo CD sync switched the order-api-faults config and the service now returns injected HTTP 500 errors, burning the error budget while the rollout is paused."
+}
